@@ -1,0 +1,21 @@
+{
+  "id": "whispered-query",
+  "title": "Owner whispers a query → priority memory card (spec use case 3)",
+  "anchor": "2026-07-09T14:00:00+00:00",
+  "is_owner": true,
+  "seed_memories": [
+    {"text": "We went to the park with the kids last Saturday",
+     "type": "observation", "importance": 0.6, "days_ago": 20},
+    {"text": "Dinner with Jasmine booked at Chili restaurant for seven pm",
+     "type": "event", "importance": 0.9, "event_days_ahead": 3,
+     "entities": [["Jasmine", "person"], ["Chili", "place"]]}
+  ],
+  "utterances": [
+    {"t": 0, "speaker": "Owner", "label": "Owner", "text": "when did we go to the park last", "whisper": true},
+    {"t": 12, "speaker": "Owner", "label": "Owner", "text": "what did jasmine say about dinner", "whisper": true}
+  ],
+  "labels": [
+    {"after_utterance": 0, "expect": "card", "memory_contains_any": ["park"]},
+    {"after_utterance": 1, "expect": "card", "memory_contains_any": ["dinner", "jasmine", "chili"]}
+  ]
+}

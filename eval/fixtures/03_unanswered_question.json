@@ -1,0 +1,19 @@
+{
+  "id": "unanswered-question",
+  "title": "Question asked aloud, nobody answers → lookup card (spec use case 2)",
+  "anchor": "2026-07-09T09:00:00+00:00",
+  "seed_memories": [
+    {"text": "We went to the park with the kids last Saturday",
+     "type": "observation", "importance": 0.6, "days_ago": 20,
+     "entities": [["Park", "place"]]}
+  ],
+  "utterances": [
+    {"t": 0, "speaker": "Owner", "label": "Owner", "text": "i have been trying to remember all morning", "question": false},
+    {"t": 8, "speaker": "Owner", "label": "Owner", "text": "when did we last go to the park with the kids", "question": true},
+    {"t": 16, "speaker": "Owner", "label": "Owner", "text": "nobody seems to know the answer"}
+  ],
+  "labels": [
+    {"after_utterance": 0, "expect": "silence"},
+    {"after_utterance": 1, "expect": "card", "memory_contains_any": ["park"]}
+  ]
+}

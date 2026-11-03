@@ -1,0 +1,17 @@
+{
+  "id": "commitment-mention",
+  "title": "Commitment mention → the promise is surfaced",
+  "anchor": "2026-07-11T16:00:00+00:00",
+  "seed_memories": [
+    {"text": "Marcus promised to bring dessert and candles to the party",
+     "type": "commitment", "importance": 0.8, "event_days_ahead": 2,
+     "entities": [["Marcus", "person"]]}
+  ],
+  "utterances": [
+    {"t": 0, "speaker": "Owner", "label": "Owner", "text": "i keep meaning to ask what exactly marcus promised to bring"},
+    {"t": 10, "speaker": "Guest", "label": "Speaker-2", "text": "he promised dessert and candles i think"}
+  ],
+  "labels": [
+    {"after_utterance": 0, "expect": "card", "memory_contains_any": ["dessert", "marcus", "candles"]}
+  ]
+}

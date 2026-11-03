@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+server/data/
+server/config.yaml
+
+# Swift / Xcode
+build/
+DerivedData/
+*.xcodeproj
+!ios/Ambient.xcodeproj/project.yml
+xcuserdata/
+.swiftpm/
+.build/
+*.ipa
+*.dSYM.zip
+Pods/
+
+# Node/editor/OS
+.DS_Store
+.env
+*.log
+db.sqlite3
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+
+# Swift
+.build/
+.swiftpm/
+*.xcodeproj
+DerivedData/

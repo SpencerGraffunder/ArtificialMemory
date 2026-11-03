@@ -1,0 +1,24 @@
+{
+  "id": "person-topic-shift",
+  "title": "Budget talk (card) then shift to Jasmine surprise (card), no cross-talk",
+  "anchor": "2026-07-12T13:00:00+00:00",
+  "seed_memories": [
+    {"text": "Jasmine birthday dinner plan at the italian place",
+     "type": "plan", "importance": 0.9, "event_days_ahead": 6,
+     "entities": [["Jasmine", "person"]]},
+    {"text": "Quarterly budget review with finance on the agenda",
+     "type": "plan", "importance": 0.7, "days_ago": 2}
+  ],
+  "utterances": [
+    {"t": 0,  "speaker": "Owner", "label": "Owner", "text": "the quarterly budget review went long today"},
+    {"t": 10, "speaker": "Priya", "label": "Priya", "text": "finance loved the new numbers"},
+    {"t": 20, "speaker": "Owner", "label": "Owner", "text": "anyway we should finalize the surprise for jasmine soon"},
+    {"t": 30, "speaker": "Priya", "label": "Priya", "text": "should we invite more people"}
+  ],
+  "labels": [
+    {"after_utterance": 0, "expect": "card", "memory_contains_any": ["budget", "review", "finance"]},
+    {"after_utterance": 1, "expect": "silence"},
+    {"after_utterance": 2, "expect": "card", "memory_contains_any": ["jasmine", "birthday", "italian"]},
+    {"after_utterance": 3, "expect": "silence"}
+  ]
+}

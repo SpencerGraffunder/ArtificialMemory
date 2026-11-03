@@ -1,0 +1,23 @@
+{
+  "id": "repeated-mentions-no-spam",
+  "title": "Same event mentioned four times → exactly one card, then cooldown",
+  "anchor": "2026-07-17T12:00:00+00:00",
+  "seed_memories": [
+    {"text": "Dinner with Jasmine booked at Chili restaurant for seven pm",
+     "type": "event", "importance": 0.9, "event_days_ahead": 3,
+     "entities": [["Jasmine", "person"], ["Chili", "place"]]}
+  ],
+  "utterances": [
+    {"t": 0,  "speaker": "Owner", "label": "Owner", "text": "we have dinner with jasmine at chili this week right"},
+    {"t": 20, "speaker": "Owner", "label": "Owner", "text": "the dinner at chili should be really fun"},
+    {"t": 40, "speaker": "Jasmine", "label": "Jasmine", "text": "jasmine is excited about friday too"},
+    {"t": 60, "speaker": "Owner", "label": "Owner", "text": "chili has great garlic bread"}
+  ],
+  "labels": [
+    {"after_utterance": 0, "expect": "card", "memory_contains_any": ["dinner", "chili", "jasmine"]},
+    {"after_utterance": 1, "expect": "silence"},
+    {"after_utterance": 2, "expect": "silence"},
+    {"after_utterance": 3, "expect": "silence"}
+  ],
+  "max_total_cards": 1
+}

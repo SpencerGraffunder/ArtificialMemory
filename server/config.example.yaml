@@ -1,0 +1,85 @@
+# Ambient Memory server configuration.
+# Copy to config.yaml next to the app (or set AMBIENT_CONFIG=/path). Secrets (tokens,
+# API keys) are env-only: AMBIENT_TOKEN, LLM_API_KEY, EMBEDDING_API_KEY.
+# Env vars override everything here (prefix AMBIENT_, nesting with double underscore,
+# e.g. AMBIENT_RELEVANCE__GATE_THRESHOLD=0.6).
+
+server:
+  host: 0.0.0.0
+  port: 8378
+
+llm:
+  # Any OpenAI-compatible endpoint: vLLM, llama.cpp server, Ollama (/v1), OpenRouter...
+  base_url: "http://127.0.0.1:8000/v1"
+  model_fast: "gpt-4o-mini"   # placeholder until owner chooses (spec §13)
+  model_deep: "gpt-4o"        # placeholder until owner chooses (spec §13)
+  max_tokens_fast: 600
+  max_tokens_deep: 2400
+  timeout_s: 30
+  embedding_base_url: ""       # empty → use base_url
+  embedding_model: "bge-small-en-v1.5"
+  embedding_dim: 384           # must match the served model; 0 = auto-detect on first call
+
+search:
+  backend: "searxng"           # searxng | none
+  searxng_url: "http://127.0.0.1:8888"
+  max_results: 5
+  timeout_s: 8
+
+conversations:
+  silence_gap_s: 180           # conversation closes after this much silence
+  incremental_every: 12        # incremental extraction every N utterances (0 = off)
+  location_move_m: 800         # significant location change closes a conversation
+
+relevance:
+  window_s: 60                 # rolling context window
+  partial_stability_s: 1.5     # evaluate stable partials after this much silence-in-partial
+  top_k: 20                    # L1 candidates
+  gate_threshold: 0.55
+  cooldown_s: 600              # per-memory re-surface cooldown
+  max_cards: 3
+  card_ttl_s: 45               # fade unless pinned (topic inactivity)
+  topic_shift_cosine: 0.30     # window drift below this = topic change
+  echo_suppress: 0.72          # ≥72 % of a memory's content words just spoken live → stay silent
+  llm_judge_enabled: false     # fast-LLM gate on top-3 (A/B in replay harness)
+  keyword_fallback: true       # score semantic from FTS5 signal (×0.55) when no vector sim
+  question_wait_s: 6           # wait for a human answer before lookup agent
+  weights:                     # spec §5.4
+    semantic: 0.40
+    entity_overlap: 0.20
+    actionability: 0.15
+    importance: 0.10
+    recency_decay: 0.10
+    speaker_match: 0.05
+    recently_shown: -0.30
+    dismissed_before: -0.30
+  actionability_horizon_days: 14
+
+recall:
+  half_life_h: 168             # recency decay half-life (scoring only, never deletes)
+
+extraction:
+  supersession_enabled: true   # close contradicted memories instead of overwriting
+  supersede_similarity: 0.82   # vector sim above which the fast LLM checks "replaces?"
+  disambiguate_llm: true       # fast-LLM entity disambiguation in the 0.60-0.87 fuzzy band
+
+query:                         # direct query path profile (spec §5.5): recall-friendly
+  top_k: 25
+  gate_threshold: 0.20
+  synthesize_answer: true      # deep LLM synthesis grounded in retrieved memories
+
+clarifications:
+  max_per_digest: 5
+  expiry_days: 14
+  remind_after_days: 7
+  digest_local_time: "21:30"   # single digest notification; owner timezone below
+  timezone: "America/Los_Angeles"
+
+storage:
+  data_dir: "./data"
+  db_path: "./data/ambient.sqlite3"
+  keep_raw_audio: false        # spec §13 default off
+  export_dir: "./data/exports"
+
+telemetry:
+  log_level: "INFO"

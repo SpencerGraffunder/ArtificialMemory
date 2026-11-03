@@ -1,0 +1,29 @@
+{
+  "id": "event-mention-dinner",
+  "title": "Event mention → dinner date/place card (spec use case 1)",
+  "anchor": "2026-07-07T18:00:00+00:00",
+  "seed_memories": [
+    {"text": "Dinner with Jasmine booked at Chili restaurant for seven pm",
+     "type": "event", "importance": 0.9, "event_days_ahead": 3,
+     "entities": [["Jasmine", "person"], ["Chili", "place"]],
+     "structured": {"time_phrase": "next Friday"}},
+    {"text": "Marcus promised to bring dessert to the Friday dinner",
+     "type": "commitment", "importance": 0.7, "event_days_ahead": 3,
+     "entities": [["Marcus", "person"], ["Jasmine", "person"]]}
+  ],
+  "utterances": [
+    {"t": 0,  "speaker": "Owner", "label": "Owner", "text": "hey how are you doing today"},
+    {"t": 6,  "speaker": "Owner", "label": "Owner", "text": "so are we still on for dinner next friday"},
+    {"t": 14, "speaker": "Jasmine", "label": "Jasmine", "text": "yes i booked the table at chili for seven"},
+    {"t": 22, "speaker": "Owner", "label": "Owner", "text": "perfect and marcus is bringing dessert right"},
+    {"t": 30, "speaker": "Jasmine", "label": "Jasmine", "text": "he said he would bring dessert on friday night"},
+    {"t": 40, "speaker": "Owner", "label": "Owner", "text": "great see you there then bye"}
+  ],
+  "labels": [
+    {"after_utterance": 0, "expect": "silence"},
+    {"after_utterance": 1, "expect": "card", "memory_contains_any": ["dinner", "chili", "friday"]},
+    {"after_utterance": 2, "expect": "silence"},
+    {"after_utterance": 3, "expect": "card", "memory_contains_any": ["dessert", "marcus"]},
+    {"after_utterance": 5, "expect": "silence"}
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "id": "project-topic-shift",
+  "title": "Topic shifts from ARTES talk to kitchen → each topic's OTHER memory surfaces",
+  "anchor": "2026-07-08T10:00:00+00:00",
+  "seed_memories": [
+    {"text": "ARTES rollout kickoff meeting scheduled for tomorrow morning",
+     "type": "event", "importance": 0.9, "event_days_ahead": 1,
+     "entities": [["ARTES", "project"]]},
+    {"text": "Kitchen renovation contractor booked for the tile installation",
+     "type": "event", "importance": 0.8, "event_days_ahead": 5,
+     "entities": [["Kitchen Renovation", "project"]]}
+  ],
+  "utterances": [
+    {"t": 0,  "speaker": "Owner", "label": "Owner", "text": "how is the artes telemetry platform rollout migration going"},
+    {"t": 8,  "speaker": "Priya", "label": "Priya", "text": "the artes migration rollout is on track"},
+    {"t": 16, "speaker": "Owner", "label": "Owner", "text": "nice work on the platform"},
+    {"t": 24, "speaker": "Owner", "label": "Owner", "text": "totally different topic now, what is the status on the kitchen renovation"},
+    {"t": 32, "speaker": "Priya", "label": "Priya", "text": "the kitchen work is scheduled with the contractor already"}
+  ],
+  "labels": [
+    {"after_utterance": 0, "expect": "card", "memory_contains_any": ["kickoff", "meeting", "tomorrow"]},
+    {"after_utterance": 2, "expect": "silence"},
+    {"after_utterance": 3, "expect": "card", "memory_contains_any": ["kitchen", "renovation", "contractor"]},
+    {"after_utterance": 4, "expect": "silence"}
+  ]
+}

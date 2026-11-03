@@ -1,0 +1,126 @@
+{
+  "id": "multi-event-day",
+  "title": "Four event topics across a simulated 5-hour day \u2192 cards/hour probe",
+  "anchor": "2026-07-15T08:00:00+00:00",
+  "seed_memories": [
+    {
+      "text": "Dinner with Jasmine booked at Chili restaurant for seven pm",
+      "type": "event",
+      "importance": 0.9,
+      "event_days_ahead": 3,
+      "entities": [
+        [
+          "Jasmine",
+          "person"
+        ],
+        [
+          "Chili",
+          "place"
+        ]
+      ]
+    },
+    {
+      "text": "ARTES vendor contract renewal due friday",
+      "type": "event",
+      "importance": 0.9,
+      "event_days_ahead": 2,
+      "entities": [
+        [
+          "ARTES",
+          "project"
+        ]
+      ]
+    },
+    {
+      "text": "Kitchen renovation loan application sent to the credit union",
+      "type": "event",
+      "importance": 0.8,
+      "event_days_ahead": 2,
+      "entities": [
+        [
+          "Kitchen Renovation",
+          "project"
+        ]
+      ]
+    },
+    {
+      "text": "Team photo day for the kids match at East Field saturday",
+      "type": "event",
+      "importance": 0.9,
+      "event_days_ahead": 1,
+      "entities": [
+        [
+          "East Field",
+          "place"
+        ]
+      ]
+    }
+  ],
+  "utterances": [
+    {
+      "t": 0,
+      "speaker": "Owner",
+      "label": "Owner",
+      "text": "dinner with jasmine at chili is still on for this week"
+    },
+    {
+      "t": 3600,
+      "speaker": "Owner",
+      "label": "Owner",
+      "text": "the artes telemetry platform rollout kickoff is tomorrow"
+    },
+    {
+      "t": 10800,
+      "speaker": "Owner",
+      "label": "Owner",
+      "text": "we still owe money for the kitchen renovation somehow"
+    },
+    {
+      "t": 18000,
+      "speaker": "Owner",
+      "label": "Owner",
+      "text": "about the kids soccer thing at the east field this weekend"
+    }
+  ],
+  "labels": [
+    {
+      "after_utterance": 0,
+      "expect": "card",
+      "memory_contains_any": [
+        "dinner",
+        "chili",
+        "jasmine"
+      ]
+    },
+    {
+      "after_utterance": 1,
+      "expect": "card",
+      "memory_contains_any": [
+        "artes",
+        "vendor",
+        "renewal",
+        "contract"
+      ]
+    },
+    {
+      "after_utterance": 2,
+      "expect": "card",
+      "memory_contains_any": [
+        "kitchen",
+        "renovation",
+        "loan",
+        "credit"
+      ]
+    },
+    {
+      "after_utterance": 3,
+      "expect": "card",
+      "memory_contains_any": [
+        "photo",
+        "team",
+        "match",
+        "east"
+      ]
+    }
+  ]
+}

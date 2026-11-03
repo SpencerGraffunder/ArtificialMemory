@@ -1,0 +1,275 @@
+{
+  "totals": {
+    "tp": 16,
+    "fp": 0,
+    "fn": 0,
+    "cards": 16,
+    "sim_hours": 5.077222222222222,
+    "cards_per_hour": 3.151329467118941,
+    "precision": 1.0,
+    "recall": 1.0
+  },
+  "fixtures": [
+    {
+      "id": "event-mention-dinner",
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "cards": [
+        {
+          "ts": "2026-07-07 18:00:14+00:00",
+          "card_id": "e4de5cb7f02a458da4c824869b3be09b",
+          "kind": "relevance",
+          "headline": "Dinner with Jasmine booked at Chili restaurant for seven pm",
+          "detail": "next Friday \u00b7 \u00b7 Chili, Jasmine",
+          "score": 0.6574,
+          "matched_label": true
+        },
+        {
+          "ts": "2026-07-07 18:00:22+00:00",
+          "card_id": "d4e6bf1f517544a398a589fc0f777e38",
+          "kind": "relevance",
+          "headline": "Marcus promised to bring dessert to the Friday dinner",
+          "detail": "\u00b7 Marcus, Jasmine",
+          "score": 0.5647,
+          "matched_label": true
+        }
+      ],
+      "clarifications": 0,
+      "problems": []
+    },
+    {
+      "id": "project-topic-shift",
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "cards": [
+        {
+          "ts": "2026-07-08 10:00:00+00:00",
+          "card_id": "5b4b88eef3d445748599338db130585e",
+          "kind": "relevance",
+          "headline": "ARTES rollout kickoff meeting scheduled for tomorrow morning",
+          "detail": "\u00b7 ARTES",
+          "score": 0.6343,
+          "matched_label": true
+        },
+        {
+          "ts": "2026-07-08 10:00:24+00:00",
+          "card_id": "df3469362fbd41abb7161cb125f18e85",
+          "kind": "relevance",
+          "headline": "Kitchen renovation contractor booked for the tile installation",
+          "detail": "\u00b7 Kitchen Renovation",
+          "score": 0.5681,
+          "matched_label": true
+        }
+      ],
+      "clarifications": 0,
+      "problems": []
+    },
+    {
+      "id": "unanswered-question",
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "cards": [
+        {
+          "ts": "2026-07-09 09:00:08+00:00",
+          "card_id": "b6b9e782c99543079d9d9978430b25d7",
+          "kind": "lookup",
+          "headline": "We went to the park with the kids last Saturday",
+          "detail": "asked aloud: when did we last go to the park with the kids",
+          "score": 0.8739,
+          "matched_label": true
+        }
+      ],
+      "clarifications": 0,
+      "problems": []
+    },
+    {
+      "id": "whispered-query",
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "cards": [
+        {
+          "ts": "2026-07-09 14:00:00+00:00",
+          "card_id": "bdbf7f2a2b944caaacf3914515d169e9",
+          "kind": "query",
+          "headline": "We went to the park with the kids last Saturday",
+          "detail": "We went to the park with the kids last Saturday",
+          "score": 0.7473,
+          "matched_label": true
+        },
+        {
+          "ts": "2026-07-09 14:00:12+00:00",
+          "card_id": "6c6ebdc45a3c46de9269efcdf827d9fa",
+          "kind": "query",
+          "headline": "Dinner with Jasmine booked at Chili restaurant for seven pm",
+          "detail": "Dinner with Jasmine booked at Chili restaurant for seven pm",
+          "score": 0.465,
+          "matched_label": true
+        }
+      ],
+      "clarifications": 0,
+      "problems": []
+    },
+    {
+      "id": "acronym-introduction",
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "cards": [],
+      "clarifications": 1,
+      "problems": []
+    },
+    {
+      "id": "commitment-mention",
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "cards": [
+        {
+          "ts": "2026-07-11 16:00:00+00:00",
+          "card_id": "ba0715e30f5841118c187490598107a4",
+          "kind": "relevance",
+          "headline": "Marcus promised to bring dessert and candles to the party",
+          "detail": "\u00b7 Marcus",
+          "score": 0.7634,
+          "matched_label": true
+        }
+      ],
+      "clarifications": 0,
+      "problems": []
+    },
+    {
+      "id": "person-topic-shift",
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "cards": [
+        {
+          "ts": "2026-07-12 13:00:00+00:00",
+          "card_id": "205a2a06bd7f494e83a09c2bcee30e3d",
+          "kind": "relevance",
+          "headline": "Quarterly budget review with finance on the agenda",
+          "detail": "",
+          "score": 0.5873,
+          "matched_label": true
+        },
+        {
+          "ts": "2026-07-12 13:00:20+00:00",
+          "card_id": "8c8ef649345c424ab5fdac42ebc1acce",
+          "kind": "relevance",
+          "headline": "Jasmine birthday dinner plan at the italian place",
+          "detail": "\u00b7 Jasmine",
+          "score": 0.7027,
+          "matched_label": true
+        }
+      ],
+      "clarifications": 0,
+      "problems": []
+    },
+    {
+      "id": "smalltalk-silence",
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "cards": [],
+      "clarifications": 0,
+      "problems": []
+    },
+    {
+      "id": "temporal-match",
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "cards": [
+        {
+          "ts": "2026-07-14 09:00:00+00:00",
+          "card_id": "52b123614d5c4d7fb80bc037be7030b7",
+          "kind": "relevance",
+          "headline": "The dentist appointment on the 14th needs insurance card uploaded",
+          "detail": "\u00b7 Dentist",
+          "score": 0.8085,
+          "matched_label": true
+        }
+      ],
+      "clarifications": 0,
+      "problems": []
+    },
+    {
+      "id": "multi-event-day",
+      "tp": 4,
+      "fp": 0,
+      "fn": 0,
+      "cards": [
+        {
+          "ts": "2026-07-15 08:00:00+00:00",
+          "card_id": "66a7a34e5c9c47cfacbc14a8bddb07b2",
+          "kind": "relevance",
+          "headline": "Dinner with Jasmine booked at Chili restaurant for seven pm",
+          "detail": "\u00b7 Jasmine, Chili",
+          "score": 0.8282,
+          "matched_label": true
+        },
+        {
+          "ts": "2026-07-15 09:00:00+00:00",
+          "card_id": "ea5726ac07364c05af7d53a6155b343b",
+          "kind": "relevance",
+          "headline": "ARTES vendor contract renewal due friday",
+          "detail": "\u00b7 ARTES",
+          "score": 0.5973,
+          "matched_label": true
+        },
+        {
+          "ts": "2026-07-15 11:00:00+00:00",
+          "card_id": "375e8d28c8d54d5b9f17cc45a0ac35c6",
+          "kind": "relevance",
+          "headline": "Kitchen renovation loan application sent to the credit union",
+          "detail": "\u00b7 Kitchen Renovation",
+          "score": 0.747,
+          "matched_label": true
+        },
+        {
+          "ts": "2026-07-15 13:00:00+00:00",
+          "card_id": "fba0c5f042b74372a8b424bfea1e2b48",
+          "kind": "relevance",
+          "headline": "Team photo day for the kids match at East Field saturday",
+          "detail": "\u00b7 East Field",
+          "score": 0.7387,
+          "matched_label": true
+        }
+      ],
+      "clarifications": 0,
+      "problems": []
+    },
+    {
+      "id": "question-answered-by-human",
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "cards": [],
+      "clarifications": 0,
+      "problems": []
+    },
+    {
+      "id": "repeated-mentions-no-spam",
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "cards": [
+        {
+          "ts": "2026-07-17 12:00:00+00:00",
+          "card_id": "0c70dfa1eb784a8aadefb55a2cd9fd45",
+          "kind": "relevance",
+          "headline": "Dinner with Jasmine booked at Chili restaurant for seven pm",
+          "detail": "\u00b7 Chili, Jasmine",
+          "score": 0.8321,
+          "matched_label": true
+        }
+      ],
+      "clarifications": 0,
+      "problems": []
+    }
+  ]
+}

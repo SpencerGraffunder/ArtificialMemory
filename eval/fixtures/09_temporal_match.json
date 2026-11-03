@@ -1,0 +1,44 @@
+{
+  "id": "temporal-match",
+  "title": "Date mentioned in speech matches stored event tomorrow \u2192 card",
+  "anchor": "2026-07-14T09:00:00+00:00",
+  "seed_memories": [
+    {
+      "text": "The dentist appointment on the 14th needs insurance card uploaded",
+      "type": "event",
+      "importance": 0.8,
+      "event_days_ahead": 1,
+      "entities": [
+        [
+          "Dentist",
+          "place"
+        ]
+      ]
+    }
+  ],
+  "utterances": [
+    {
+      "t": 0,
+      "speaker": "Owner",
+      "label": "Owner",
+      "text": "did the dentist appointment on the 14th get confirmed"
+    },
+    {
+      "t": 12,
+      "speaker": "Guest",
+      "label": "Speaker-2",
+      "text": "i think they confirmed it by text"
+    }
+  ],
+  "labels": [
+    {
+      "after_utterance": 0,
+      "expect": "card",
+      "memory_contains_any": [
+        "dentist",
+        "14th",
+        "insurance"
+      ]
+    }
+  ]
+}
