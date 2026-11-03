@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from ambient_server.core.dates import resolve_time_phrase
+from artmem_server.core.dates import resolve_time_phrase
 
 # Tuesday 2026-07-07 15:00 UTC
 TUE = datetime(2026, 7, 7, 15, 0, tzinfo=timezone.utc)

@@ -1,7 +1,7 @@
 import json
 from datetime import datetime, timedelta, timezone
 
-from ambient_server.models import UtteranceEvent, utc_now
+from artmem_server.models import UtteranceEvent, utc_now
 
 
 def utt(id="u1", text="hello there", speaker="spk-1", label="Owner", rev=0, **kw):
@@ -106,7 +106,7 @@ def test_speaker_rename_merge_and_delete(store):
 
 
 def test_conversation_sweep_and_location_routing_helpers(store, ctx):
-    from ambient_server.services import haversine_m
+    from artmem_server.services import haversine_m
 
     assert haversine_m(37.7749, -122.4194, 37.7749, -122.4194) == 0
     assert 500 < haversine_m(37.7749, -122.4194, 37.7849, -122.4194) < 1500

@@ -1,8 +1,8 @@
 import asyncio
 from datetime import timedelta
 
-from ambient_server.models import UtteranceEvent, utc_now
-from ambient_server.testing import fake_embed_vector
+from artmem_server.models import UtteranceEvent, utc_now
+from artmem_server.testing import fake_embed_vector
 
 NOW = utc_now()
 
@@ -167,7 +167,7 @@ async def test_llm_judge_gate_can_block_card(ctx, store, fake_llm):
 
 
 async def test_echo_gate_blocks_cards_that_only_repeat_just_spoken_words(ctx, store):
-    from ambient_server.pipeline.relevance import _echo_coverage
+    from artmem_server.pipeline.relevance import _echo_coverage
     mem = "Kids soccer game saturday 10am at the east field"
     assert _echo_coverage(mem, "is the kids soccer game at the east field on saturday at 10am") >= 0.72
     assert _echo_coverage(mem, "we should book the venue deposit this week") < 0.72

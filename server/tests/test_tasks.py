@@ -11,11 +11,11 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from fastapi.testclient import TestClient
 
-from ambient_server.api.app import create_app
-from ambient_server.config import load_config
-from ambient_server.models import UtteranceEvent
-from ambient_server.services import AppContext
-from ambient_server.testing import FakeLLM, make_test_cfg
+from artmem_server.api.app import create_app
+from artmem_server.config import load_config
+from artmem_server.models import UtteranceEvent
+from artmem_server.services import AppContext
+from artmem_server.testing import FakeLLM, make_test_cfg
 
 from test_extraction import ANCHOR, EXTRACT_RESULT
 
@@ -27,7 +27,7 @@ def dctx(tmp_path, fake_llm):
     # a fake LLM endpoint is "reachable" without an api key (mock transport)
     """Delegated AppContext. Long fallback delay by default so the background loop
     never races the scripted 'phone'; individual tests zero it when testing fallback."""
-    cfg = make_test_cfg(tmp_path / "ambient.sqlite3",
+    cfg = make_test_cfg(tmp_path / "artmem.sqlite3",
                         extraction__delegated=True,
                         extraction__fallback_delay_s=3600.0)
     cfg.llm.api_key = "fake-key"
@@ -267,7 +267,7 @@ def test_safety_net_requeues_closed_conversation_with_stragglers(dctx, fake_llm)
 def test_non_delegated_unchanged():
     """Default config: close extracts synchronously, no task rows at all."""
     # exercised by the entire existing suite; assert the negative explicitly here
-    import ambient_server.services as svc
+    import artmem_server.services as svc
     cfg = make_test_cfg("/tmp/nondelegated-check.sqlite3")
     assert cfg.extraction.delegated is False
     assert hasattr(svc.AppContext, "_schedule_extraction")

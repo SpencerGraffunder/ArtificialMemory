@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from ambient_server.llm.prompts import PromptSet
+from artmem_server.llm.prompts import PromptSet
 
 PROMPTS_DIR = Path(__file__).resolve().parents[1] / "prompts"
 

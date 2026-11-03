@@ -2,17 +2,17 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from ambient_server.config import RelevanceConfig, RelevanceWeights
-from ambient_server.core.clarifications import (
+from artmem_server.config import RelevanceConfig, RelevanceWeights
+from artmem_server.core.clarifications import (
     ClarificationRow,
     dedupe_key,
     expected_value,
     next_transitions,
     rank,
 )
-from ambient_server.core.gating import gate_candidates, is_topic_shift, should_expire_card
-from ambient_server.core.normalize import normalize_name, resolve_entity, similarity, EntityCandidate
-from ambient_server.core.scoring import (
+from artmem_server.core.gating import gate_candidates, is_topic_shift, should_expire_card
+from artmem_server.core.normalize import normalize_name, resolve_entity, similarity, EntityCandidate
+from artmem_server.core.scoring import (
     ScoreFeatures,
     actionability_score,
     compute_score,

@@ -1,4 +1,4 @@
-# Ambient Memory
+# ArtificialMemory
 
 An always-on artificial memory. The iPhone listens in the background, transcribes and
 attributes speech to speakers on-device, and turns conversations into structured
@@ -12,7 +12,7 @@ mean?") improve memory quality.
 Single-user, self-hosted. All data stays on your devices and server.
 
 ```
-iPhone (AmbientCore + SwiftUI app)
+iPhone (ArtMemCore + SwiftUI app)
   mic → VAD → streaming ASR → diarization → utterance events
   local SQLite: outbox queue, FULL memory mirror (FTS5), task-result buffer,
                 speaker profiles, card history
@@ -35,12 +35,12 @@ never reports in. Full rationale: `docs/DECISIONS.md` ("Phone-first rebalance").
 ## Repo layout
 
 ```
-ios/            Xcode project + AmbientCore Swift package (UI-free, iOS+macOS)
+ios/            Xcode project + ArtMemCore Swift package (UI-free, iOS+macOS)
 server/         FastAPI app, prompts/, tests/
 eval/           replay harness, fixtures, scoring-parity exporter (feeds Swift CI)
 docs/           DECISIONS.md, API.md (generated from OpenAPI)
 .github/        self-hosted CI (this Mac is the build machine)
-docker-compose.yml   ambient + searxng
+docker-compose.yml   artmem + searxng
 deploy/         unraid-up.sh (one-paste bring-up), searxng config
 ```
 
@@ -50,24 +50,24 @@ One paste on the Unraid terminal (needs a fine-grained PAT with Contents:Read, t
 is private):
 
 ```sh
-PAT=github_pat_xxx sh -c 'curl -s https://raw.githubusercontent.com/SpencerGraffunder/ambient-memory/main/deploy/unraid-up.sh | PAT=$PAT sh'
+PAT=github_pat_xxx sh -c 'curl -s https://raw.githubusercontent.com/SpencerGraffunder/ArtificialMemory/main/deploy/unraid-up.sh | PAT=$PAT sh'
 ```
 
-It clones to `/mnt/user/appdata/ambient-memory`, generates `AMBIENT_TOKEN` +
+It clones to `/mnt/user/appdata/artmem`, generates `ARTMEM_TOKEN` +
 `SEARXNG_SECRET` into `.env`, builds, and starts the stack. The printed token goes into
 the iPhone app's Settings. Re-run any time to update.
 
-Generic Docker: `cp .env.example .env` (set `AMBIENT_TOKEN`), `docker compose up -d`.
+Generic Docker: `cp .env.example .env` (set `ARTMEM_TOKEN`), `docker compose up -d`.
 
-Health check: `curl -H "Authorization: Bearer $AMBIENT_TOKEN" http://localhost:8378/v1/health`
+Health check: `curl -H "Authorization: Bearer $ARTMEM_TOKEN" http://localhost:8378/v1/health`
 
 ## Quick start (iOS)
 
 ```bash
 cd ios
-xcodegen generate            # Ambient.xcodeproj from project.yml (source of truth)
-open Ambient.xcodeproj       # run on device; set endpoints + token + phone LLM in Settings
-swift test --package-path AmbientCore --scratch-path ~/Library/Caches/AmbientCoreBuild
+xcodegen generate            # ArtMem.xcodeproj from project.yml (source of truth)
+open ArtMem.xcodeproj       # run on device; set endpoints + token + phone LLM in Settings
+swift test --package-path ArtMemCore --scratch-path ~/Library/Caches/ArtMemCoreBuild
 ```
 
 The Debug screen's demo emitter pushes scripted utterances through the exact production
@@ -82,8 +82,8 @@ tries an ordered endpoint list (MagicDNS name first, LAN IP fallback).
 
 ## CI (GitHub Actions, self-hosted on the Mac)
 
-Runner `mac-ambient-memory` (labels `mac`, `ambient`) — registered via
-`~/actions-runner-ambient-memory` (LaunchAgent, survives reboots).
+Runner `mac-artmem` (labels `mac`, `artmem`) — registered via
+`~/actions-runner-artmem` (LaunchAgent, survives reboots).
 
 - **Server Tests** — pytest + eval replay + scoring-parity fixture drift-guard, on every
   server push (runs free: this is your hardware).
@@ -100,7 +100,7 @@ you when the other drifted.
 ```bash
 cd server && .venv/bin/python -m pytest          # 112 tests
 cd ../eval && python replay/run.py               # 12/12, P=1.00 R=1.00, 3.15 cards/h
-cd ../ios/AmbientCore && swift test --scratch-path ~/Library/Caches/AmbientCoreBuild  # 55 tests
+cd ../ios/ArtMemCore && swift test --scratch-path ~/Library/Caches/ArtMemCoreBuild  # 55 tests
 ```
 
 See `docs/DECISIONS.md` for every implementation decision and its rationale, and

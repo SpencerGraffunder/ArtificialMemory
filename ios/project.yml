@@ -1,6 +1,6 @@
-name: Ambient
+name: ArtMem
 options:
-  bundleIdPrefix: dev.graffunder.ambient
+  bundleIdPrefix: dev.graffunder.artmem
   deploymentTarget:
     iOS: "18.0"
   createIntermediateGroups: true
@@ -9,19 +9,19 @@ settings:
     SWIFT_VERSION: "6.0"
     IPHONEOS_DEPLOYMENT_TARGET: "18.0"
 packages:
-  AmbientCore:
-    path: AmbientCore
+  ArtMemCore:
+    path: ArtMemCore
 targets:
-  Ambient:
+  ArtMem:
     type: application
     platform: iOS
-    sources: [Ambient]
+    sources: [ArtMem]
     dependencies:
-      - package: AmbientCore
+      - package: ArtMemCore
     info:
-      path: Ambient/Info.plist
+      path: ArtMem/Info.plist
       properties:
-        CFBundleDisplayName: Ambient
+        CFBundleDisplayName: ArtificialMemory
         CFBundleShortVersionString: "0.1"
         CFBundleVersion: "1"
         UILaunchScreen: {}
@@ -30,14 +30,14 @@ targets:
           - processing
           - fetch
         NSMicrophoneUsageDescription: >-
-          Ambient listens continuously so it can transcribe, remember, and
+          ArtificialMemory listens continuously so it can transcribe, remember, and
           surface your conversations. Audio never leaves your devices.
         ITSAppUsesNonExemptEncryption: false
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: dev.graffunder.ambient
+        PRODUCT_BUNDLE_IDENTIFIER: dev.graffunder.artmem
         TARGETED_DEVICE_FAMILY: "1"
         CODE_SIGN_STYLE: Automatic
         SWIFT_STRICT_CONCURRENCY: complete

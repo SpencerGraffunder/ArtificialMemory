@@ -4,7 +4,7 @@ functions (core/scoring.py, core/gating.py, relevance echo) into the Swift test 
 
 Run from repo root after touching server scoring/gating/echo code:
     server/.venv/bin/python eval/export_scoring_fixtures.py
-Then: cd ios/AmbientCore && swift test   (parity assertions must hold)
+Then: cd ios/ArtMemCore && swift test   (parity assertions must hold)
 
 This is what "the tuned engine stays one engine" means concretely: the phone may
 retrieve memories differently (local search), but given the same FEATURES the phone's
@@ -21,16 +21,16 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "server" / "src"))
 
-from ambient_server.config import RelevanceWeights  # noqa: E402
-from ambient_server.core.gating import gate_candidates  # noqa: E402
-from ambient_server.core.scoring import (  # noqa: E402
+from artmem_server.config import RelevanceWeights  # noqa: E402
+from artmem_server.core.gating import gate_candidates  # noqa: E402
+from artmem_server.core.scoring import (  # noqa: E402
     ScoreFeatures, actionability_score, compute_score, dismissed_score, jaccard,
     recency_decay, semantic_from_sims, speaker_match,
 )
-from ambient_server.pipeline.relevance import _echo_coverage  # noqa: E402
+from artmem_server.pipeline.relevance import _echo_coverage  # noqa: E402
 
 def _cfg_with(**kw):
-    from ambient_server.config import RelevanceConfig
+    from artmem_server.config import RelevanceConfig
     return RelevanceConfig(**kw)
 
 NOW = datetime(2026, 11, 3, 12, 0, tzinfo=timezone.utc)
@@ -145,7 +145,7 @@ cases.append({"kind": "gate", "name": "mixed-scenario", "scores":
 
 payload = {"generated_note": "server/.venv/bin/python eval/export_scoring_fixtures.py",
            "now": NOW.isoformat(), "cases": cases}
-out = REPO / "ios" / "AmbientCore" / "Tests" / "AmbientCoreTests" / "Fixtures"
+out = REPO / "ios" / "ArtMemCore" / "Tests" / "ArtMemCoreTests" / "Fixtures"
 out.mkdir(parents=True, exist_ok=True)
 (out / "scoring_parity.json").write_text(json.dumps(payload, indent=1))
 print(f"wrote {len(cases)} parity cases → {out / 'scoring_parity.json'}")

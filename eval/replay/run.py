@@ -30,16 +30,16 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "server" / "src"))
 
-from ambient_server.config import load_config  # noqa: E402
-from ambient_server.db import store as store_mod  # noqa: E402
-from ambient_server.models import UtteranceEvent, parse_iso  # noqa: E402
-from ambient_server.pipeline import extraction as extraction_mod  # noqa: E402
-from ambient_server.pipeline import lookup as lookup_mod  # noqa: E402
-from ambient_server.pipeline import relevance as relevance_mod  # noqa: E402
-from ambient_server.pipeline.relevance import EngineEvent  # noqa: E402
-from ambient_server.services import AppContext  # noqa: E402
-from ambient_server import services as services_mod  # noqa: E402
-from ambient_server.testing import FakeLLM, fake_embed_vector, make_test_cfg  # noqa: E402
+from artmem_server.config import load_config  # noqa: E402
+from artmem_server.db import store as store_mod  # noqa: E402
+from artmem_server.models import UtteranceEvent, parse_iso  # noqa: E402
+from artmem_server.pipeline import extraction as extraction_mod  # noqa: E402
+from artmem_server.pipeline import lookup as lookup_mod  # noqa: E402
+from artmem_server.pipeline import relevance as relevance_mod  # noqa: E402
+from artmem_server.pipeline.relevance import EngineEvent  # noqa: E402
+from artmem_server.services import AppContext  # noqa: E402
+from artmem_server import services as services_mod  # noqa: E402
+from artmem_server.testing import FakeLLM, fake_embed_vector, make_test_cfg  # noqa: E402
 
 FIXTURES_DIR = REPO / "eval" / "fixtures"
 CARD_MATCH_WINDOW_S = 12.0     # simulated seconds after labeled utterance
@@ -152,7 +152,7 @@ async def run_fixture(path: Path, verbose: bool) -> FixtureResult:
     owner_id = "spk-owner"
 
     with tempfile.TemporaryDirectory() as td:
-        cfg = make_test_cfg(Path(td) / "ambient.sqlite3")
+        cfg = make_test_cfg(Path(td) / "artmem.sqlite3")
         cfg.relevance.question_wait_s = QUESTION_WAIT_S
         cfg.relevance.card_ttl_s = 45 * 60  # generous: TTL is probed in unit tests
         fake = FakeLLM()
@@ -317,7 +317,7 @@ async def run_all(fixtures: list[Path], verbose: bool) -> list[FixtureResult]:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Ambient Memory replay eval harness")
+    ap = argparse.ArgumentParser(description="ArtificialMemory replay eval harness")
     ap.add_argument("--fixture", default=None, help="substring filter, e.g. --fixture 04")
     ap.add_argument("--verbose", action="store_true", help="print every card with timing")
     ap.add_argument("--json", default=None, help="write machine-readable report")

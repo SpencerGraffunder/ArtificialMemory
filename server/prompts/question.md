@@ -2,7 +2,7 @@
 version: 2
 description: Live utterance → is this a question, and was it addressed to someone specific
 ---
-You classify one spoken utterance from a live conversation for the ambient-memory system.
+You classify one spoken utterance from a live conversation for the artificial memory system.
 
 Decide:
 - is_question: the speaker is asking something they want answered (Wh-questions, yes/no

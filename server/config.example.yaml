@@ -1,8 +1,8 @@
-# Ambient Memory server configuration.
-# Copy to config.yaml next to the app (or set AMBIENT_CONFIG=/path). Secrets (tokens,
-# API keys) are env-only: AMBIENT_TOKEN, LLM_API_KEY, EMBEDDING_API_KEY.
-# Env vars override everything here (prefix AMBIENT_, nesting with double underscore,
-# e.g. AMBIENT_RELEVANCE__GATE_THRESHOLD=0.6).
+# ArtificialMemory server configuration.
+# Copy to config.yaml next to the app (or set ARTMEM_CONFIG=/path). Secrets (tokens,
+# API keys) are env-only: ARTMEM_TOKEN, LLM_API_KEY, EMBEDDING_API_KEY.
+# Env vars override everything here (prefix ARTMEM_, nesting with double underscore,
+# e.g. ARTMEM_RELEVANCE__GATE_THRESHOLD=0.6).
 
 server:
   host: 0.0.0.0
@@ -77,7 +77,7 @@ clarifications:
 
 storage:
   data_dir: "./data"
-  db_path: "./data/ambient.sqlite3"
+  db_path: "./data/artmem.sqlite3"
   keep_raw_audio: false        # spec §13 default off
   export_dir: "./data/exports"
 

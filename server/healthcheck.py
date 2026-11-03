@@ -4,8 +4,8 @@ import os
 import sys
 import urllib.request
 
-token = os.environ.get("AMBIENT_TOKEN", "")
-port = os.environ.get("AMBIENT_SERVER__PORT", "8378")
+token = os.environ.get("ARTMEM_TOKEN", "")
+port = os.environ.get("ARTMEM_SERVER__PORT", "8378")
 req = urllib.request.Request(
     f"http://127.0.0.1:{port}/v1/health",
     headers={"Authorization": f"Bearer {token}"})

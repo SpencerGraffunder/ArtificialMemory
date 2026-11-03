@@ -4,9 +4,9 @@ from datetime import datetime, timezone
 import pytest
 from fastapi.testclient import TestClient
 
-from ambient_server.api.app import create_app
-from ambient_server.models import UtteranceEvent
-from ambient_server.testing import fake_embed_vector
+from artmem_server.api.app import create_app
+from artmem_server.models import UtteranceEvent
+from artmem_server.testing import fake_embed_vector
 
 TOKEN = "test-token"
 HDRS = {"Authorization": f"Bearer {TOKEN}"}
@@ -129,7 +129,7 @@ def test_query_endpoint_direct_path(client, ctx, fake_llm):
 
 # ---------------------------------------------------------------- speakers
 def test_speakers_rename_merge(client, store):
-    from ambient_server.models import utc_now
+    from artmem_server.models import utc_now
 
     cid = store.create_conversation(utc_now())
     for i, lab in enumerate(["Speaker-1", "Speaker-2"]):
@@ -151,7 +151,7 @@ def test_speakers_rename_merge(client, store):
 
 # ---------------------------------------------------------------- clarifications
 def test_clarifications_flow(client, store):
-    from ambient_server.models import utc_now
+    from artmem_server.models import utc_now
 
     now = utc_now()
     cid = store.insert_clarification("unknown_entity", "What does ARTES mean?",
@@ -174,7 +174,7 @@ def test_clarifications_flow(client, store):
 
 
 def test_speaker_clarification_answer_renames_or_merges(client, store):
-    from ambient_server.models import utc_now
+    from artmem_server.models import utc_now
 
     now = utc_now()
     store.upsert_speaker_from_utterance("sid-x", "Speaker-3", now)

@@ -1,4 +1,4 @@
-"""Shared pytest fixtures; heavy lifting lives in ambient_server.testing so the eval
+"""Shared pytest fixtures; heavy lifting lives in artmem_server.testing so the eval
 replay harness reuses the exact same fake endpoint."""
 
 from __future__ import annotations
@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from ambient_server.services import AppContext
-from ambient_server.testing import FakeLLM, fake_embed_vector, make_test_cfg  # noqa: F401
+from artmem_server.services import AppContext
+from artmem_server.testing import FakeLLM, fake_embed_vector, make_test_cfg  # noqa: F401
 
 __all__ = ["FakeLLM", "fake_embed_vector", "make_test_cfg", "ctx", "store", "fake_llm"]
 
@@ -22,7 +22,7 @@ def fake_llm() -> FakeLLM:
 @pytest.fixture
 def ctx(tmp_path: Path, fake_llm: FakeLLM):
     """AppContext wired to the fake LLM; background loop NOT started."""
-    cfg = make_test_cfg(tmp_path / "ambient.sqlite3")
+    cfg = make_test_cfg(tmp_path / "artmem.sqlite3")
     app_ctx = AppContext(cfg, llm_client=fake_llm.client(cfg.llm.base_url))
     yield app_ctx
 

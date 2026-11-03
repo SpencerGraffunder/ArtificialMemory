@@ -1,40 +1,41 @@
-# Ambient Memory — home server stack (spec §2).
-#   cp .env.example .env   # set AMBIENT_TOKEN (+ LLM keys)
-#   docker compose up -d
-# Everything stateful lives in the `ambient-data` volume (one SQLite file + exports).
+# ArtificialMemory — home server stack (spec §2).
+#   cp .env.example .env   # set ARTMEM_TOKEN (+ LLM keys)
+#   docker compose up -d                       # reuse an existing SearxNG (set SEARCH_URL)
+#   docker compose --profile bundled-search up -d   # also start the bundled SearxNG
+# Everything stateful lives in the `artmem-data` volume (one SQLite file + exports).
 
 services:
-  ambient:
+  artmem:
     build: ./server
     restart: unless-stopped
     ports:
-      - "${AMBIENT_PORT:-8378}:8378"
+      - "${ARTMEM_PORT:-8378}:8378"
     environment:
-      AMBIENT_TOKEN: ${AMBIENT_TOKEN:?set a long random token in .env}
+      ARTMEM_TOKEN: ${ARTMEM_TOKEN:?set a long random token in .env}
       LLM_API_KEY: ${LLM_API_KEY:-}
       EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:-}
       # point at any OpenAI-compatible endpoint (OpenRouter, local llama.cpp, …)
-      AMBIENT_LLM__BASE_URL: ${AMBIENT_LLM__BASE_URL:-https://openrouter.ai/api/v1}
-      AMBIENT_LLM__MODEL_FAST: ${AMBIENT_LLM__MODEL_FAST:-openai/gpt-4o-mini}
-      AMBIENT_LLM__MODEL_DEEP: ${AMBIENT_LLM__MODEL_DEEP:-openai/gpt-4o}
-      AMBIENT_LLM__EMBEDDING_BASE_URL: ${AMBIENT_LLM__EMBEDDING_BASE_URL:-}
-      AMBIENT_LLM__EMBEDDING_MODEL: ${AMBIENT_LLM__EMBEDDING_MODEL:-}
-      # web search: the in-network SearxNG below
-      AMBIENT_SEARCH__BACKEND: ${AMBIENT_SEARCH__BACKEND:-searxng}
-      AMBIENT_SEARCH__SEARXNG_URL: http://searxng:8080
+      ARTMEM_LLM__BASE_URL: ${ARTMEM_LLM__BASE_URL:-https://openrouter.ai/api/v1}
+      ARTMEM_LLM__MODEL_FAST: ${ARTMEM_LLM__MODEL_FAST:-openai/gpt-4o-mini}
+      ARTMEM_LLM__MODEL_DEEP: ${ARTMEM_LLM__MODEL_DEEP:-openai/gpt-4o}
+      ARTMEM_LLM__EMBEDDING_BASE_URL: ${ARTMEM_LLM__EMBEDDING_BASE_URL:-}
+      ARTMEM_LLM__EMBEDDING_MODEL: ${ARTMEM_LLM__EMBEDDING_MODEL:-}
+      # web search: reuse an existing SearxNG (SEARCH_URL) or run the bundled one
+      ARTMEM_SEARCH__BACKEND: ${ARTMEM_SEARCH__BACKEND:-searxng}
+      ARTMEM_SEARCH__SEARXNG_URL: ${SEARCH_URL:-http://searxng:8080}
     volumes:
-      - ambient-data:/data
-    depends_on:
-      searxng:
-        condition: service_started
+      - artmem-data:/data
 
-  # self-hosted metasearch (spec §2: no third-party search API keys leave the house)
+  # self-hosted metasearch (spec §2: no third-party search API keys leave the house).
+  # OPTIONAL — only started with `--profile bundled-search`. If you already run a
+  # SearxNG (e.g. on Unraid), leave the profile off and set SEARCH_URL to it instead.
   searxng:
+    profiles: ["bundled-search"]
     image: searxng/searxng:latest
     restart: unless-stopped
     environment:
       SEARXNG_BASE_URL: http://localhost:8888/
-      SEARXNG_SECRET: ${SEARXNG_SECRET:?set a long random secret in .env}
+      SEARXNG_SECRET: ${SEARXNG_SECRET:-set-only-for-bundled-searxng}
     ports:
       - "${SEARXNG_PORT:-8888}:8080"   # optional: reach SearxNG from your LAN too
     volumes:
@@ -42,4 +43,4 @@ services:
     # no search queries leave this box except the ones SearxNG proxies onward
 
 volumes:
-  ambient-data:
+  artmem-data:

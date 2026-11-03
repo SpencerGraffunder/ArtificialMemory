@@ -37,9 +37,9 @@ deferred to §13 are made here and logged.
 
 ## Architecture
 
-- **AmbientCore Swift package** has zero UI imports; `AudioSource` and `CardSink`
+- **ArtMemCore Swift package** has zero UI imports; `AudioSource` and `CardSink`
   protocols defined up front (spec §3.7). FluidAudio conformance lives in a separate
-  target `AmbientCoreFluidAudio` so `AmbientCore` tests run on any Mac without model files.
+  target `ArtMemCoreFluidAudio` so `ArtMemCore` tests run on any Mac without model files.
 - **Whisper detection is client-side**: it needs raw RMS/spectral features from the audio
   tap; the phone classifies, flags `is_whisper`, and routes queries via `POST /v1/query`
   (server never sees whispered audio unless owner pins the result).
@@ -75,7 +75,7 @@ deferred to §13 are made here and logged.
 
 ## Dates
 
-- Relative-date resolver is deterministic code (no LLM) in `ambient_server/core/dates.py`,
+- Relative-date resolver is deterministic code (no LLM) in `artmem_server/core/dates.py`,
   operating on the extractor's *original phrase* fields; the extractor's job is only to
   emit `time_phrase` + anchor. Cases tested: "next Friday", "the 14th", "in two weeks",
   "tomorrow night", bare weekday, "this weekend", ranges. Two-word noon/midnight handled;
@@ -127,7 +127,7 @@ deferred to §13 are made here and logged.
 
 ## Test/eval shared fake endpoint
 
-- `ambient_server.testing` ships FakeLLM (MockTransport serving /chat/completions +
+- `artmem_server.testing` ships FakeLLM (MockTransport serving /chat/completions +
   /embeddings) + hashed bag-of-words embeddings + config factory. Unit tests and the
   replay harness drive the identical HTTP paths as real vLLM/Ollama.
 - Replay harness installs a **simulated clock** (module-level `utc_now` patch) so window
@@ -137,8 +137,8 @@ deferred to §13 are made here and logged.
   timer cards go through `card_sink` → WS fan-out).
 
 # iOS app (M1–M6 UI) — 2026-11-03
-- **Project generation**: `ios/project.yml` (xcodegen) is the source of truth; `Ambient.xcodeproj` is generated and git-ignored. Swift 6 language mode, `SWIFT_STRICT_CONCURRENCY: complete`, iOS 18 minimum, `UIBackgroundModes: [audio, processing, fetch]`, mic usage string in Info.plist.
-- **AppState is the only wiring point**: AmbientCore actors (OutboxStore, Uploader, EndpointRouter, LiveSocket, APIClient, CardHistory, SpeechGate, iOSAudioCapture, RollingAudioBuffer, WhisperDetector) connect through one @MainActor object; views never touch the package directly except Codable types.
+- **Project generation**: `ios/project.yml` (xcodegen) is the source of truth; `ArtMem.xcodeproj` is generated and git-ignored. Swift 6 language mode, `SWIFT_STRICT_CONCURRENCY: complete`, iOS 18 minimum, `UIBackgroundModes: [audio, processing, fetch]`, mic usage string in Info.plist.
+- **AppState is the only wiring point**: ArtMemCore actors (OutboxStore, Uploader, EndpointRouter, LiveSocket, APIClient, CardHistory, SpeechGate, iOSAudioCapture, RollingAudioBuffer, WhisperDetector) connect through one @MainActor object; views never touch the package directly except Codable types.
 - **ASR/diarization remain unbound by design.** Spec M0 spike (b) (FluidAudio under battery/thermal) requires a physical iPhone — cannot be honest from a Mac. The seam is `AppState.finalize(samples:start:end:)` (gated speech segments) and everything downstream (outbox → WS → server → cards back) is exercised on-device via the Debug screen's demo emitter, which uses the exact production path. Same for owner enrollment UI, pyannote offline refinement, and Live Activity/Dynamic Island (needs a widget target — next slice). Tracked as pending bindings in Debug UI.
 - **Whisper routing is live logic** (WhisperDetector + configurable rms-ratio in Settings): owner + quiet+breathy → query path → priority card; trigger phrase "memory," is the documented fallback. Without ASR bound, whispered text can't be transcribed yet — the classifier gates and the query route is proven by the emitter's "flag as whisper query" toggle (routes through POST /v1/query like §5.5).
 - **Server gaps found while binding UI** (fixed server-side first): `/v1/clarifications/digest` returns `{"questions": [...]}` (client DigestPage); conversations list/detail now have typed Codable models (`ConversationSummary`, `TranscriptLine`) instead of JSONValue soup.
@@ -150,7 +150,7 @@ Owner instruction: *"Anything that can be done on the phone without any real tra
 do them there. Keep the server for the buffering stuff — to not lose an in-flight LLM
 request. Storage on the phone. Use the existing SearxNG."*
 
-- **Memory storage lives on the phone.** `MemoryStore` (ios/AmbientCore) is a full
+- **Memory storage lives on the phone.** `MemoryStore` (ios/ArtMemCore) is a full
   mirrored SQLite+FTS5 store fed by `GET /v1/memories/sync` (full-state swap; the
   server may prune, the phone keeps its archive — spec §5.3's never-delete enforced
   client-side). Phone-side recall (search, ranking, cards) works with no network.

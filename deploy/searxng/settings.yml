@@ -1,4 +1,4 @@
-# Minimal SearxNG settings for the Ambient stack (secret comes from SEARXNG_SECRET env).
+# Minimal SearxNG settings for the ArtMem stack (secret comes from SEARXNG_SECRET env).
 use_default_settings: true
 
 server:
@@ -9,7 +9,7 @@ server:
 search:
   safe_search: 0
   formats:
-    - json          # the ambient server consumes the JSON API
+    - json          # the artmem server consumes the JSON API
     - html
 
 ui:

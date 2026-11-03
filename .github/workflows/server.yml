@@ -12,7 +12,7 @@ on:
 
 jobs:
   pytest-eval:
-    runs-on: [self-hosted, macOS, ARM64, ambient]
+    runs-on: [self-hosted, macOS, ARM64, artmem]
     steps:
       - uses: actions/checkout@v4
 
@@ -34,5 +34,5 @@ jobs:
       - name: Regenerate scoring parity fixtures (consumed by Swift CI)
         run: |
           server/.venv/bin/python eval/export_scoring_fixtures.py
-          git diff --exit-code ios/AmbientCore/Tests/AmbientCoreTests/Fixtures/scoring_parity.json \
+          git diff --exit-code ios/ArtMemCore/Tests/ArtMemCoreTests/Fixtures/scoring_parity.json \
             || { echo "::error::server scoring changed — regenerate + commit the parity fixtures"; exit 1; }

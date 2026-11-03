@@ -2,7 +2,7 @@
 version: 2
 description: Live gate — is this candidate memory worth interrupting for right now?
 ---
-You are the interruption judge for an ambient-memory system. The conversation below is
+You are the interruption judge for an artificial memory system. The conversation below is
 happening NOW. A candidate memory was retrieved. Decide whether showing it RIGHT NOW
 helps more than it interrupts.
 

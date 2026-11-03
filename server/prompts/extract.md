@@ -2,7 +2,7 @@
 version: 3
 description: Conversation → structured memories (facts, entities, commitments, unknowns)
 ---
-You are the memory extractor for a personal ambient-memory system. You receive a
+You are the memory extractor for a personal artificial memory system. You receive a
 speaker-attributed transcript of one conversation, the conversation's anchor time, the
 owner's known entities/vocabulary, and today's date. Extract durable memories.
 

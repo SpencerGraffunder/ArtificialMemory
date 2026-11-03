@@ -20,7 +20,7 @@ Exit code 0 = every fixture passed its labels, `max_total_cards` and
 
 ## How it works
 
-* Deterministic fake endpoint (`ambient_server.testing.FakeLLM` + hashed bag-of-words
+* Deterministic fake endpoint (`artmem_server.testing.FakeLLM` + hashed bag-of-words
   embeddings) — same HTTP code paths as real vLLM/Ollama, zero GPU/network.
 * A **simulated clock** replaces `utc_now` in every app module for the duration of a
   fixture, so rolling windows, decay, cooldowns and conversation gaps all follow the

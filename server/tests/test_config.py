@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from ambient_server.config import load_config
+from artmem_server.config import load_config
 
 
 def write_yaml(tmp_path: Path, text: str) -> Path:
@@ -36,7 +36,7 @@ conversations:
 
 def test_env_overrides_yaml(tmp_path):
     p = write_yaml(tmp_path, "relevance:\n  gate_threshold: 0.7\n")
-    cfg = load_config(config_path=p, env={"AMBIENT_RELEVANCE__GATE_THRESHOLD": "0.9"})
+    cfg = load_config(config_path=p, env={"ARTMEM_RELEVANCE__GATE_THRESHOLD": "0.9"})
     assert cfg.relevance.gate_threshold == 0.9
 
 
@@ -45,7 +45,7 @@ def test_secrets_env_only(tmp_path):
     cfg = load_config(config_path=p, env={})
     assert cfg.token == ""            # yaml cannot set the token
     assert cfg.llm.api_key == ""      # nor the api key
-    cfg = load_config(config_path=p, env={"AMBIENT_TOKEN": "t0k", "LLM_API_KEY": "sk-x"})
+    cfg = load_config(config_path=p, env={"ARTMEM_TOKEN": "t0k", "LLM_API_KEY": "sk-x"})
     assert cfg.token == "t0k"
     assert cfg.llm.api_key == "sk-x"
 
@@ -53,8 +53,8 @@ def test_secrets_env_only(tmp_path):
 def test_bool_and_none_coercion(tmp_path):
     cfg = load_config(
         config_path=tmp_path / "m.yaml",
-        env={"AMBIENT_STORAGE__KEEP_RAW_AUDIO": "true",
-             "AMBIENT_LLM__EMBEDDING_MODEL": ""},
+        env={"ARTMEM_STORAGE__KEEP_RAW_AUDIO": "true",
+             "ARTMEM_LLM__EMBEDDING_MODEL": ""},
     )
     assert cfg.storage.keep_raw_audio is True
 

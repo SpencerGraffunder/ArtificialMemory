@@ -1,6 +1,6 @@
 name: iOS Build
 
-# Self-hosted on Spencer's Mac (runner: mac-ambient-memory, labels mac+ambient).
+# Self-hosted on Spencer's Mac (runner: mac-artmem, labels mac+artmem).
 # Free minutes, but it is a laptop: triggered by tag or by hand, never on push.
 
 on:
@@ -10,19 +10,19 @@ on:
 
 jobs:
   core-tests:
-    name: AmbientCore unit tests
-    runs-on: [self-hosted, macOS, ARM64, ambient]
+    name: ArtMemCore unit tests
+    runs-on: [self-hosted, macOS, ARM64, artmem]
     steps:
       - uses: actions/checkout@v4
 
       - name: Swift unit tests (storage, scoring parity, tasks, outbox)
-        working-directory: ios/AmbientCore
+        working-directory: ios/ArtMemCore
         run: swift test -j 1 --scratch-path "$GITHUB_WORKSPACE/.ci/ambcore"
 
   build:
     name: Build app (iOS Simulator)
     needs: core-tests
-    runs-on: [self-hosted, macOS, ARM64, ambient]
+    runs-on: [self-hosted, macOS, ARM64, artmem]
     steps:
       - uses: actions/checkout@v4
 
@@ -34,7 +34,7 @@ jobs:
 
       - name: Build (unsigned, simulator — signing is a local/Xcode concern)
         run: >
-          xcodebuild -project ios/Ambient.xcodeproj -scheme Ambient
+          xcodebuild -project ios/ArtMem.xcodeproj -scheme ArtMem
           -destination 'generic/platform=iOS Simulator'
           -derivedDataPath "$GITHUB_WORKSPACE/.ci/dd"
           CODE_SIGNING_ALLOWED=NO build
@@ -42,10 +42,10 @@ jobs:
       - name: Package .app
         run: |
           cd "$GITHUB_WORKSPACE/.ci/dd/Build/Products/Debug-iphonesimulator"
-          ditto -c -k --keepParent Ambient.app "$GITHUB_WORKSPACE/Ambient-simulator.zip"
+          ditto -c -k --keepParent ArtMem.app "$GITHUB_WORKSPACE/ArtMem-simulator.zip"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Ambient-simulator
-          path: Ambient-simulator.zip
+          name: ArtMem-simulator
+          path: ArtMem-simulator.zip
           retention-days: 30

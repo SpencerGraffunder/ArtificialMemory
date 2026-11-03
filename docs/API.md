@@ -1,4 +1,4 @@
-# Ambient Memory — Server API
+# ArtificialMemory — Server API
 
 Base URL: `http://<home-server>:8378` · Machine-readable spec: [`openapi.json`](openapi.json) (served live at `/openapi.json`).
 
@@ -7,11 +7,11 @@ Base URL: `http://<home-server>:8378` · Machine-readable spec: [`openapi.json`]
 Every route — including `/v1/health` and the WebSocket — requires:
 
 ```
-Authorization: Bearer $AMBIENT_TOKEN
+Authorization: Bearer $ARTMEM_TOKEN
 ```
 
 - Missing/invalid token → `401`.
-- Server started without `AMBIENT_TOKEN` → `503` on all routes (fail-closed).
+- Server started without `ARTMEM_TOKEN` → `503` on all routes (fail-closed).
 - WebSocket with a bad token closes with code `4401`.
 
 ## Ingestion (phone → server)
@@ -123,7 +123,7 @@ don’t answer (spec §5.5).
 ## Example
 
 ```bash
-T=$AMBIENT_TOKEN
+T=$ARTMEM_TOKEN
 curl -s -H "Authorization: Bearer $T" localhost:8378/v1/health
 curl -s -H "Authorization: Bearer $T" -H 'content-type: application/json' \
      -d '{"q":"what does ARTES stand for?"}' localhost:8378/v1/query

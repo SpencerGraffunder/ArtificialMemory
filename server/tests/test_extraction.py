@@ -2,7 +2,7 @@ import json
 from datetime import datetime, timedelta, timezone
 
 
-from ambient_server.models import UtteranceEvent
+from artmem_server.models import UtteranceEvent
 
 # Tuesday 2026-07-07 18:00 UTC — "next Friday" resolves to 2026-07-10
 ANCHOR = datetime(2026, 7, 7, 18, 0, tzinfo=timezone.utc)

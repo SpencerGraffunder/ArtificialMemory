@@ -3,9 +3,9 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "ambient-server"
+name = "artmem-server"
 version = "0.1.0"
-description = "Ambient Memory home server: ingest, extraction, bi-temporal memory, live relevance"
+description = "ArtificialMemory home server: ingest, extraction, bi-temporal memory, live relevance"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115",
