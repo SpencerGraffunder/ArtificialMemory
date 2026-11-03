@@ -91,14 +91,35 @@ public struct APIClient: Sendable {
         _ = try await request("DELETE", "v1/memories/\(id)")
     }
 
-    public struct ConversationPage: Codable, Sendable { public var conversations: [JSONValue] }
+    public struct ConversationPage: Codable, Sendable {
+        public var conversations: [ConversationSummary]
+    }
+    public struct ConversationSummary: Codable, Sendable, Identifiable {
+        public var id: String
+        public var startedAt: String
+        public var endedAt: String?
+        public var utteranceCount: Int?
+        public var extractionStatus: String?
+    }
     public func conversations() async throws -> ConversationPage {
         try AmbientJSON.decoder(ConversationPage.self,
                                 from: try await request("GET", "v1/conversations"))
     }
 
-    public func conversation(id: String) async throws -> JSONValue {
-        try AmbientJSON.decoder(JSONValue.self,
+    public struct ConversationDetail: Codable, Sendable {
+        public var conversation: ConversationSummary
+        public var utterances: [TranscriptLine]
+    }
+    public struct TranscriptLine: Codable, Sendable, Identifiable {
+        public var id: String
+        public var text: String
+        public var speakerLabel: String?
+        public var speakerName: String?
+        public var startTs: String
+        public var isWhisper: Int?
+    }
+    public func conversation(id: String) async throws -> ConversationDetail {
+        try AmbientJSON.decoder(ConversationDetail.self,
                                 from: try await request("GET", "v1/conversations/\(id)"))
     }
 
@@ -120,13 +141,14 @@ public struct APIClient: Sendable {
     }
 
     public struct ClarificationPage: Codable, Sendable { public var clarifications: [Clarification] }
+    public struct DigestPage: Codable, Sendable { public var questions: [Clarification] }
     public func clarifications(status: String = "open") async throws -> ClarificationPage {
         try AmbientJSON.decoder(ClarificationPage.self,
             from: try await request("GET", "v1/clarifications", query: ["status": status]))
     }
 
-    public func clarificationDigest() async throws -> ClarificationPage {
-        try AmbientJSON.decoder(ClarificationPage.self,
+    public func clarificationDigest() async throws -> DigestPage {
+        try AmbientJSON.decoder(DigestPage.self,
                                 from: try await request("GET", "v1/clarifications/digest"))
     }
 

@@ -135,3 +135,11 @@ deferred to §13 are made here and logged.
   time stays compressed (~1 s/fixture). Card capture covers BOTH paths: utterance return
   values and async timer broadcasts (utterance-path cards return to the caller; only
   timer cards go through `card_sink` → WS fan-out).
+
+# iOS app (M1–M6 UI) — 2026-11-03
+- **Project generation**: `ios/project.yml` (xcodegen) is the source of truth; `Ambient.xcodeproj` is generated and git-ignored. Swift 6 language mode, `SWIFT_STRICT_CONCURRENCY: complete`, iOS 18 minimum, `UIBackgroundModes: [audio, processing, fetch]`, mic usage string in Info.plist.
+- **AppState is the only wiring point**: AmbientCore actors (OutboxStore, Uploader, EndpointRouter, LiveSocket, APIClient, CardHistory, SpeechGate, iOSAudioCapture, RollingAudioBuffer, WhisperDetector) connect through one @MainActor object; views never touch the package directly except Codable types.
+- **ASR/diarization remain unbound by design.** Spec M0 spike (b) (FluidAudio under battery/thermal) requires a physical iPhone — cannot be honest from a Mac. The seam is `AppState.finalize(samples:start:end:)` (gated speech segments) and everything downstream (outbox → WS → server → cards back) is exercised on-device via the Debug screen's demo emitter, which uses the exact production path. Same for owner enrollment UI, pyannote offline refinement, and Live Activity/Dynamic Island (needs a widget target — next slice). Tracked as pending bindings in Debug UI.
+- **Whisper routing is live logic** (WhisperDetector + configurable rms-ratio in Settings): owner + quiet+breathy → query path → priority card; trigger phrase "memory," is the documented fallback. Without ASR bound, whispered text can't be transcribed yet — the classifier gates and the query route is proven by the emitter's "flag as whisper query" toggle (routes through POST /v1/query like §5.5).
+- **Server gaps found while binding UI** (fixed server-side first): `/v1/clarifications/digest` returns `{"questions": [...]}` (client DigestPage); conversations list/detail now have typed Codable models (`ConversationSummary`, `TranscriptLine`) instead of JSONValue soup.
+- **Naming**: app screen `ConversationTimelineView` (SwiftUI owns `TimelineView`).

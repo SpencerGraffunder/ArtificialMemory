@@ -13,7 +13,6 @@ server/config.yaml
 build/
 DerivedData/
 *.xcodeproj
-!ios/Ambient.xcodeproj/project.yml
 xcuserdata/
 .swiftpm/
 .build/

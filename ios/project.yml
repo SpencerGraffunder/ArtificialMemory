@@ -1,0 +1,43 @@
+name: Ambient
+options:
+  bundleIdPrefix: dev.graffunder.ambient
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    IPHONEOS_DEPLOYMENT_TARGET: "18.0"
+packages:
+  AmbientCore:
+    path: AmbientCore
+targets:
+  Ambient:
+    type: application
+    platform: iOS
+    sources: [Ambient]
+    dependencies:
+      - package: AmbientCore
+    info:
+      path: Ambient/Info.plist
+      properties:
+        CFBundleDisplayName: Ambient
+        CFBundleShortVersionString: "0.1"
+        CFBundleVersion: "1"
+        UILaunchScreen: {}
+        UIBackgroundModes:
+          - audio
+          - processing
+          - fetch
+        NSMicrophoneUsageDescription: >-
+          Ambient listens continuously so it can transcribe, remember, and
+          surface your conversations. Audio never leaves your devices.
+        ITSAppUsesNonExemptEncryption: false
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.graffunder.ambient
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_STYLE: Automatic
+        SWIFT_STRICT_CONCURRENCY: complete
