@@ -9,6 +9,10 @@
 # costs one compile + assemble, not a second full test cycle on a laptop.
 name: iOS Device IPA
 
+# GITHUB_TOKEN defaults to read-only here; publishing releases needs write.
+permissions:
+  contents: write
+
 on:
   push:
     branches: [main]
