@@ -426,14 +426,42 @@ final class AppState: ObservableObject {
     }
 
     /// Direct query path (spec §5.5): whisper text, search bar, or hold-to-ask.
+    /// Local-first — the phone mirror answers instantly and works with no network;
+    /// the server adds LLM synthesis + SearxNG when reachable.
     func ask(_ question: String) async {
-        guard let api else { return }
+        if let answer = await localAnswer(for: question) {
+            showCard(answer)
+            if status != .online { return }   // offline: this is the answer we have
+        }
+        guard let api else {
+            if status != .online { toast = "Answered from on-device memory" }
+            return
+        }
         do {
             let result = try await api.query(question)
             showCard(result.card)
         } catch {
-            toast = "Query failed: \(error.localizedDescription)"
+            if let answer = await localAnswer(for: question) {
+                showCard(answer)   // server died mid-question — mirror still serves
+            } else {
+                toast = "Query failed: \(error.localizedDescription)"
+            }
         }
+    }
+
+    private func localAnswer(for question: String) async -> Card? {
+        guard let memoryStore else { return nil }
+        let hits = (try? await memoryStore.search(question)) ?? []
+        guard let top = hits.first, top.score > 0.5 else { return nil }
+        var headline = top.text
+        if headline.count > 140 { headline = String(headline.prefix(139)) + "…" }
+        return Card(id: "local-q-" + String(UUID().uuidString.prefix(8)) + "-" + top.id,
+                    kind: .lookup, memoryId: top.id, headline: headline,
+                    detail: hits.dropFirst().prefix(2).map(\.text).joined(separator: " · "),
+                    sourceChip: "on-device memory", origin: .memory, url: nil,
+                    score: top.score, priority: true, sourceUtteranceIds: [],
+                    expiresAt: nil, debugFeatures: [:],
+                    createdAt: Date().isoWire)
     }
 
     /// Debug/demo path: push a scripted utterance through the exact production route
