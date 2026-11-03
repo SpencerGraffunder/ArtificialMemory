@@ -55,9 +55,16 @@ Health check: `curl -H "Authorization: Bearer $AMBIENT_TOKEN" http://localhost:8
 ## Quick start (iOS)
 
 ```bash
-cd ios/AmbientCore
-swift test          # 33 core-logic tests: outbox, backoff, VAD, whisper gate, speakers
+cd ios
+xcodegen generate            # Ambient.xcodeproj from project.yml (project.yml is the source of truth)
+open Ambient.xcodeproj       # run on a physical device; set endpoints + token in Settings
+swift test --package-path AmbientCore   # 33 core-logic tests, no UI
 ```
+
+The core package (`ios/AmbientCore`) is UI-free (compiles for iOS and macOS) — the app
+consumes its `AudioSource` / `CardSink` protocols. The Debug screen has a demo
+utterance emitter that pushes through the real outbox → WebSocket → card path, so the
+full loop is testable on a device before the FluidAudio ASR binding (M0 spike) lands.
 
 The core package (`ios/AmbientCore`) is UI-free and compiles for iOS and macOS — the
 SwiftUI app target (card stack, settings, browse) consumes its `AudioSource` /
