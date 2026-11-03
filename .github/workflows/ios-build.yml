@@ -1,0 +1,51 @@
+name: iOS Build
+
+# Self-hosted on Spencer's Mac (runner: mac-ambient-memory, labels mac+ambient).
+# Free minutes, but it is a laptop: triggered by tag or by hand, never on push.
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+jobs:
+  core-tests:
+    name: AmbientCore unit tests
+    runs-on: [self-hosted, macOS, ARM64, ambient]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Swift unit tests (storage, scoring parity, tasks, outbox)
+        working-directory: ios/AmbientCore
+        run: swift test -j 1 --scratch-path "$GITHUB_WORKSPACE/.ci/ambcore"
+
+  build:
+    name: Build app (iOS Simulator)
+    needs: core-tests
+    runs-on: [self-hosted, macOS, ARM64, ambient]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Generate project from project.yml
+        run: /opt/homebrew/bin/xcodegen generate --spec ios/project.yml
+
+      - name: Build (unsigned, simulator — signing is a local/Xcode concern)
+        run: >
+          xcodebuild -project ios/Ambient.xcodeproj -scheme Ambient
+          -destination 'generic/platform=iOS Simulator'
+          -derivedDataPath "$GITHUB_WORKSPACE/.ci/dd"
+          CODE_SIGNING_ALLOWED=NO build
+
+      - name: Package .app
+        run: |
+          cd "$GITHUB_WORKSPACE/.ci/dd/Build/Products/Debug-iphonesimulator"
+          ditto -c -k --keepParent Ambient.app "$GITHUB_WORKSPACE/Ambient-simulator.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Ambient-simulator
+          path: Ambient-simulator.zip
+          retention-days: 30
