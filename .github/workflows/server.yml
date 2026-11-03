@@ -16,14 +16,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
+      # No setup-python: its shared toolcache wants /Users/runner (unwritable).
+      # This Mac already has Homebrew CPython 3.12 on the runner PATH.
       - name: Install
         working-directory: server
         run: |
-          python -m venv .venv
+          /opt/homebrew/bin/python3.12 -m venv .venv
           .venv/bin/pip install -q -e ".[dev]"
 
       - name: Unit + integration tests
