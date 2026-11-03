@@ -115,6 +115,19 @@ public actor CardHistory {
                     .double(now.timeIntervalSince1970)])
     }
 
+    /// Latest show time per memory — primes the phone engine's cooldown map.
+    public func lastShownByMemory() throws -> [String: Date] {
+        var out: [String: Date] = [:]
+        for r in try db.query(
+            "SELECT memory_id, MAX(at) AS at FROM card_history "
+            + "WHERE kind IS NULL AND memory_id IS NOT NULL GROUP BY memory_id") {
+            if let m = r.string("memory_id") {
+                out[m] = Date(timeIntervalSince1970: r.double("at") ?? 0)
+            }
+        }
+        return out
+    }
+
     /// Times this memory was dismissed (matches server's dismissed_before feature).
     public func dismissCount(memoryId: String) throws -> Int {
         Int(try db.query(
@@ -125,7 +138,7 @@ public actor CardHistory {
     public func recent(limit: Int = 50) throws -> [CardRecord] {
         let sql = "SELECT * FROM card_history ORDER BY at DESC LIMIT ?"
         return try db.query(sql, [.int(Int64(limit))]).map { row in
-            CardRecord(id: row.int("id") ?? 0, cardId: row.text("card_id") ?? "",
+            CardRecord(id: row.int64("id") ?? 0, cardId: row.text("card_id") ?? "",
                        memoryId: row.text("memory_id"),
                        kind: row.text("kind").flatMap(FeedbackKind.init(rawValue:)),
                        score: row.double("score") ?? 0,

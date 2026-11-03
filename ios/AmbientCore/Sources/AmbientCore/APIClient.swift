@@ -165,6 +165,38 @@ public struct APIClient: Sendable {
                                 from: try await request("GET", "v1/vocabulary"))
     }
 
+    // MARK: task queue + memory mirror (phone-executed extraction)
+
+    public struct SyncPage: Codable, Sendable { public var memories: [SyncedMemory] }
+
+    public func memoriesSync() async throws -> [SyncedMemory] {
+        try AmbientJSON.decoder(SyncPage.self,
+                                from: try await request("GET", "v1/memories/sync")).memories
+    }
+
+    public func pendingTasks() async throws -> PendingTasksPage {
+        try AmbientJSON.decoder(PendingTasksPage.self,
+                                from: try await request("GET", "v1/tasks/pending"))
+    }
+
+    public func taskContext(id: String) async throws -> TaskContextResponse {
+        try AmbientJSON.decoder(TaskContextResponse.self,
+                                from: try await request("GET", "v1/tasks/\(id)/context"))
+    }
+
+    public func postTaskResult(id: String, rawJson: String) async throws
+        -> TaskResultResponse {
+        struct Body: Encodable { let rawJson: String }
+        return try AmbientJSON.decoder(TaskResultResponse.self,
+            from: try await request("POST", "v1/tasks/\(id)/result",
+                                    body: Body(rawJson: rawJson)))
+    }
+
+    public func abandonTask(id: String, reason: String) async throws {
+        struct Body: Encodable { let reason: String }
+        _ = try await request("POST", "v1/tasks/\(id)/abandon", body: Body(reason: reason))
+    }
+
     public func query(_ q: String) async throws -> QueryResult {
         struct Body: Encodable { let q: String }
         return try AmbientJSON.decoder(QueryResult.self,
@@ -174,6 +206,8 @@ public struct APIClient: Sendable {
 }
 
 /// Type-erasing Encodable wrapper (Swift stdlib name collides; ours is local).
+extension APIClient: TasksAPI {}
+
 struct AnyEncodable: Encodable {
     private let encodeFunc: (Encoder) throws -> Void
     init(_ wrapped: any Encodable) { encodeFunc = wrapped.encode }

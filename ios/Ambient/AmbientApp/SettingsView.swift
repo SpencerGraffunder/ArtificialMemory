@@ -11,6 +11,13 @@ struct SettingsView: View {
     @State private var token = ""
     @State private var newEndpoint = ""
     @State private var healthLine = ""
+    @AppStorage("ambient.phoneExtraction") private var phoneExtraction = true
+    @AppStorage("ambient.llmDeepURL") private var deepURL = ""
+    @AppStorage("ambient.llmDeepModel") private var deepModel = ""
+    @AppStorage("ambient.llmDeepKey") private var deepKey = ""
+    @AppStorage("ambient.llmFastURL") private var fastURL = ""
+    @AppStorage("ambient.llmFastModel") private var fastModel = ""
+    @AppStorage("ambient.llmFastKey") private var fastKey = ""
 
     var body: some View {
         NavigationStack {
@@ -68,6 +75,31 @@ struct SettingsView: View {
                     }
                     Text("Trigger-phrase fallback: “memory, …”")
                         .font(.caption).foregroundStyle(.secondary)
+                }
+                Section("Phone-side LLM & memory") {
+                    Toggle("Run extraction on the phone", isOn: $phoneExtraction)
+                    Text("The phone executes the server-rendered extraction prompts itself; the server keeps the durable queue and takes over only if the phone never reports in. Works offline — results wait in the local buffer.")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Group {
+                        TextField("deep base URL (openai-compatible, e.g. http://homebox.local:8000/v1)", text: $deepURL)
+                            .textInputAutocapitalization(.never).font(.body.monospaced())
+                        TextField("deep model", text: $deepModel)
+                            .textInputAutocapitalization(.never).font(.body.monospaced())
+                        SecureField("deep API key", text: $deepKey)
+                            .textInputAutocapitalization(.never).font(.body.monospaced())
+                        TextField("fast base URL (optional)", text: $fastURL)
+                            .textInputAutocapitalization(.never).font(.body.monospaced())
+                        TextField("fast model", text: $fastModel)
+                            .textInputAutocapitalization(.never).font(.body.monospaced())
+                        SecureField("fast API key", text: $fastKey)
+                            .textInputAutocapitalization(.never).font(.body.monospaced())
+                    }
+                    HStack {
+                        Text("Memories on device: \(state.memoryCount)")
+                        Spacer()
+                        Button("Sync now") { Task { await state.syncMemories() } }
+                    }
+                    .font(.callout)
                 }
                 Section("Privacy") {
                     Toggle("Share coarse location with server", isOn: Binding(

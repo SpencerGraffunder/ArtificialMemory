@@ -126,7 +126,7 @@ public actor OutboxStore {
             return true
         }
         let seq = try db.query("SELECT COALESCE(MAX(seq)+1,1) AS s FROM outbox").first?
-            .int("s") ?? 1
+            .int64("s") ?? 1
         try db.run("INSERT INTO outbox(id,seq,event_json,attempts,next_attempt_at,"
                  + "created_at,bytes) VALUES(?,?,?,?,?,?,?)",
                    [.text(event.id), .int(seq), .text(json), .int(0),
@@ -198,7 +198,7 @@ public actor OutboxStore {
         let json = row.text("event_json") ?? "{}"
         let event = try AmbientJSON.decoder(UtteranceEvent.self,
                                             from: Data(json.utf8))
-        return OutboxEntry(id: row.text("id") ?? event.id, seq: row.int("seq") ?? 0,
+        return OutboxEntry(id: row.text("id") ?? event.id, seq: row.int64("seq") ?? 0,
                            event: event, attempts: Int(row.int("attempts") ?? 0),
                            nextAttemptAt: Date(timeIntervalSince1970: row.double(
                             "next_attempt_at") ?? 0),

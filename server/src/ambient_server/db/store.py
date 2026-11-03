@@ -276,12 +276,20 @@ class Store:
             (status, last_utt_id, conversation_id),
         )
 
-    def unextracted_utterances(self, conversation_id: str, after_utt_id: str | None = None):
+    def unextracted_utterances(self, conversation_id: str, after_utt_id: str | None = None,
+                               to_utt_id: str | None = None):
+        """Slice (after, to] by transcript order. `to_utt_id` binds a remote executor's
+        result to the exact transcript the prompt was built from — utterances that
+        arrived while the phone was calling the LLM belong to the NEXT extraction."""
         rows = self.conversation_utterances(conversation_id)
         if after_utt_id:
             ids = [r["id"] for r in rows]
             if after_utt_id in ids:
                 rows = rows[ids.index(after_utt_id) + 1 :]
+        if to_utt_id:
+            ids = [r["id"] for r in rows]
+            if to_utt_id in ids:
+                rows = rows[: ids.index(to_utt_id) + 1]
         return rows
 
     # ------------------------------------------------------------- entities
@@ -747,6 +755,135 @@ class Store:
             "boost=excluded.boost, source=excluded.source, updated_at=excluded.updated_at",
             (term.lower(), kind, definition, entity_id, boost, source, now, now),
         )
+
+    def memories_sync(self) -> list[dict]:
+        """Full-state mirror payload for on-device storage (all statuses; the phone
+        replaces its local table wholesale — simple, correct, idempotent)."""
+        rows = self.db.query(
+            "SELECT m.*, COALESCE(s.name, s.label) AS speaker_name FROM memories m"
+            " LEFT JOIN speakers s ON s.id = m.speaker_id ORDER BY m.recorded_at")
+        ents = self.db.query(
+            "SELECT me.memory_id, e.name FROM memory_entities me"
+            " JOIN entities e ON e.id = me.entity_id")
+        by_mem: dict[str, list[str]] = {}
+        for r in ents:
+            by_mem.setdefault(r["memory_id"], []).append(r["name"])
+        out = []
+        for r in rows:
+            out.append({
+                "id": r["id"], "text": r["text"], "type": r["type"],
+                "importance": r["importance"], "confidence": r["confidence"],
+                "event_start": r["event_start"], "event_end": r["event_end"],
+                "valid_from": r["valid_from"], "valid_to": r["valid_to"],
+                "recorded_at": r["recorded_at"], "status": r["status"],
+                "source": r["source"], "speaker_name": r["speaker_name"],
+                "entities": sorted(set(by_mem.get(r["id"], []))),
+            })
+        return out
+
+    # ------------------------------------------------- extraction tasks (remote-exec queue)
+    _OPEN_TASK = ("pending", "applying", "running_local")
+
+    def enqueue_extraction_task(
+        self, conversation_id: str, mode: str, prompts_hash: str,
+        fallback_after: datetime, last_utt_id: str | None = None,
+    ) -> str:
+        """One open task per (conversation, mode). Re-triggering extends the deadline so
+        the phone always gets its full window after the LAST trigger, not the first."""
+        now = iso(utc_now())
+        row = self.db.query_one(
+            "SELECT id, status FROM extraction_tasks WHERE conversation_id=? AND mode=?"
+            " AND status IN ('pending','applying','running_local')",
+            (conversation_id, mode))
+        if row is not None:
+            if row["status"] == "pending":
+                self.db.execute(
+                    "UPDATE extraction_tasks SET fallback_after=?, prompts_hash=?,"
+                    " updated_at=? WHERE id=?",
+                    (iso(fallback_after), prompts_hash, now, row["id"]))
+            return row["id"]
+        tid = uuid4().hex
+        self.db.execute(
+            "INSERT INTO extraction_tasks(id, conversation_id, mode, status, attempts,"
+            " prompts_hash, last_utt_id, created_at, fallback_after, updated_at)"
+            " VALUES(?,?,?, 'pending', 0, ?,?, ?, ?, ?)",
+            (tid, conversation_id, mode, prompts_hash, last_utt_id, now,
+             iso(fallback_after), now))
+        return tid
+
+    def list_pending_tasks(self) -> list[dict]:
+        rows = self.db.query(
+            "SELECT * FROM extraction_tasks WHERE status='pending' ORDER BY created_at")
+        return [dict(r) for r in rows]
+
+    def pending_task_count(self) -> int:
+        return self.db.query_one(
+            "SELECT COUNT(*) AS n FROM extraction_tasks WHERE status='pending'")["n"]
+
+    def get_extraction_task(self, task_id: str) -> dict | None:
+        r = self.db.query_one("SELECT * FROM extraction_tasks WHERE id=?", (task_id,))
+        return dict(r) if r else None
+
+    def set_task_snapshot(self, task_id: str, last_utt_id: str | None,
+                          prompts_hash: str) -> None:
+        self.db.execute(
+            "UPDATE extraction_tasks SET last_utt_id=?, prompts_hash=?, updated_at=?"
+            " WHERE id=?", (last_utt_id, prompts_hash, iso(utc_now()), task_id))
+
+    def claim_extraction_task(self, task_id: str, prompts_hash: str) -> str:
+        """Atomic pending→applying. 'claimed' | 'stale_hash' | 'not_claimable'."""
+        row = self.get_extraction_task(task_id)
+        if row is None or row["status"] != "pending":
+            return "not_claimable"
+        if row["prompts_hash"] != prompts_hash:
+            return "stale_hash"
+        cur = self.db.execute(
+            "UPDATE extraction_tasks SET status='applying', attempts=attempts+1,"
+            " updated_at=? WHERE id=? AND status='pending'",
+            (iso(utc_now()), task_id))
+        return "claimed" if cur.rowcount == 1 else "not_claimable"
+
+    def complete_extraction_task(self, task_id: str, source: str,
+                                 error: str | None = None) -> None:
+        self.db.execute(
+            "UPDATE extraction_tasks SET status=?, error=?, result_source=?,"
+            " updated_at=?, completed_at=? WHERE id=?",
+            ("failed" if error else "done", error, source, iso(utc_now()),
+             iso(utc_now()), task_id))
+
+    def release_task_to_pending(self, task_id: str, error: str | None = None) -> None:
+        """Claimed-but-invalid (bad JSON from phone): back to pending for retry."""
+        self.db.execute(
+            "UPDATE extraction_tasks SET status='pending', error=?, updated_at=?"
+            " WHERE id=? AND status='applying'",
+            (error, iso(utc_now()), task_id))
+
+    def abandon_extraction_task(self, task_id: str, reason: str) -> None:
+        """Phone gives up: fallback becomes eligible immediately."""
+        self.db.execute(
+            "UPDATE extraction_tasks SET fallback_after=?, error=?, updated_at=?"
+            " WHERE id=? AND status='pending'",
+            (iso(utc_now()), reason[:300], iso(utc_now()), task_id))
+
+    def due_fallback_tasks(self, now: datetime) -> list[dict]:
+        rows = self.db.query(
+            "SELECT * FROM extraction_tasks WHERE status='pending' AND fallback_after <= ?"
+            " ORDER BY fallback_after", (iso(now),))
+        return [dict(r) for r in rows]
+
+    def reset_stale_claims(self, older_than: datetime) -> int:
+        """Phone claimed then died → task must not be stuck in 'applying' forever."""
+        cur = self.db.execute(
+            "UPDATE extraction_tasks SET status='pending', updated_at=?,"
+            " error='claim expired' WHERE status='applying' AND updated_at < ?",
+            (iso(utc_now()), iso(older_than)))
+        return cur.rowcount
+
+    def mark_task_running_local(self, task_id: str) -> bool:
+        cur = self.db.execute(
+            "UPDATE extraction_tasks SET status='running_local', updated_at=?"
+            " WHERE id=? AND status='pending'", (iso(utc_now()), task_id))
+        return cur.rowcount == 1
 
     # ------------------------------------------------------------- kv / stats / export
     def kv_get(self, key: str) -> str | None:

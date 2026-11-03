@@ -87,6 +87,13 @@ class RecallConfig(BaseModel):
 
 
 class ExtractionConfig(BaseModel):
+    # delegated=true: conversations queue as extraction_tasks for the phone to execute
+    # with its own LLM credentials; the server only runs them itself after
+    # fallback_delay_s (in-flight requests survive phone death — the durability buffer).
+    delegated: bool = False
+    fallback_delay_s: float = 600.0
+    incremental_fallback_delay_s: float = 300.0
+    claim_stale_after_s: float = 900.0     # phone died mid-claim → releasable
     supersession_enabled: bool = True
     supersede_similarity: float = 0.82   # vector sim above which an old memory gets LLM-checked
     disambiguate_llm: bool = True        # fast-LLM disambiguation in the 0.60–0.87 fuzzy band

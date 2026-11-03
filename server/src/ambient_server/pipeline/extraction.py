@@ -16,7 +16,7 @@ from ..config import AppConfig
 from ..core.dates import resolve_time_phrase
 from ..core.normalize import EntityCandidate, resolve_entity
 from ..db.store import Store
-from ..llm.gateway import LLMError, LLMGateway
+from ..llm.gateway import LLMError, LLMGateway, build_json_messages
 from ..llm.prompts import PromptSet
 from ..models import (
     ClarifyList,
@@ -28,6 +28,15 @@ from ..models import (
 from .embeddings import EmbeddingService
 
 log = logging.getLogger("ambient.extract")
+
+
+@dataclass
+class ExtractionJob:
+    conversation: dict
+    rows: list
+    anchor: "datetime"
+    messages: list
+    mode: str = "closing"
 
 
 @dataclass
@@ -74,35 +83,38 @@ class ExtractionPipeline:
         self.embed = embedder or EmbeddingService(None)
 
     # ------------------------------------------------------------------ main entry
-    async def extract(self, conversation_id: str, mode: str = "closing") -> ExtractionOutcome:
+    def build_job(self, conversation_id: str, mode: str = "closing",
+                  up_to_utt_id: str | None = None) -> "ExtractionJob | None":
+        """Everything except the LLM call: transcript slice, anchor, and the EXACT
+        messages a local extraction would send (one prompt pipeline, no drift)."""
         outcome = ExtractionOutcome(conversation_id=conversation_id, mode=mode)
         conv = self.store.get_conversation(conversation_id)
         if conv is None:
-            outcome.error = "no such conversation"
-            return outcome
-        rows = self.store.unextracted_utterances(conversation_id, conv["last_extracted_utterance_id"])
+            return None
+        rows = self.store.unextracted_utterances(
+            conversation_id, conv["last_extracted_utterance_id"], to_utt_id=up_to_utt_id)
         rows = [r for r in rows if not r["is_whisper"]]
         if not rows:
-            outcome.error = None
-            return outcome
+            return None
         anchor = parse_iso(rows[-1]["start_ts"])
         transcript = format_transcript(rows, with_confidence=True)
-        known = self._known_entities_text()
-        vocab = self._vocabulary_text()
+        messages = build_json_messages(
+            self.prompts["extract"], ExtractionResult,
+            user=f"Transcript ({len(rows)} utterances):\n{transcript}",
+            anchor=anchor.isoformat(), today=anchor.strftime("%Y-%m-%d (%A)"),
+            transcript=transcript, known_entities=self._known_entities_text(),
+            vocabulary=self._vocabulary_text())
+        return ExtractionJob(conversation=conv, rows=rows, anchor=anchor,
+                             messages=messages, mode=mode)
 
-        try:
-            result = await self.llm.complete_json(
-                "deep", self.prompts["extract"], ExtractionResult,
-                user=f"Transcript ({len(rows)} utterances):\n{transcript}",
-                anchor=anchor.isoformat(), today=anchor.strftime("%Y-%m-%d (%A)"),
-                transcript=transcript, known_entities=known, vocabulary=vocab,
-            )
-            outcome.llm_used = True
-            outcome.prompts = {"extract": self.prompts["extract"].ref}
-        except LLMError as exc:
-            log.error("extraction failed for %s: %s", conversation_id, exc)
-            outcome.error = str(exc)[:300]
-            return outcome
+    async def apply_result(self, job: "ExtractionJob", result: ExtractionResult,
+                           outcome: ExtractionOutcome | None = None) -> ExtractionOutcome:
+        """Post-LLM half: entities, memories, commitments, supersession, clarifications."""
+        conv, rows, anchor, mode = job.conversation, job.rows, job.anchor, job.mode
+        if outcome is None:
+            outcome = ExtractionOutcome(conversation_id=conv["id"], mode=mode)
+        outcome.llm_used = True
+        outcome.prompts = {"extract": self.prompts["extract"].ref}
 
         entity_ids = await self._resolve_entities(result, outcome)
 
@@ -134,17 +146,39 @@ class ExtractionPipeline:
             outcome.facts_created.append(mid)
             outcome.memory_texts.append(text)
 
-        self.store.mark_extracted(conversation_id, last_utt_id,
+        self.store.mark_extracted(conv["id"], last_utt_id,
                                   "closing" if mode == "closing" else "incremental")
         if mode == "closing":
             self.store.db.execute(
-                "UPDATE utterances SET extracted=1 WHERE conversation_id=?", (conversation_id,)
-            )
+                "UPDATE utterances SET extracted=1 WHERE conversation_id=?", (conv["id"],))
             await self._generate_clarifications(conv, result, rows, outcome)
             if result.summary:
                 self.store.db.execute("UPDATE conversations SET summary=? WHERE id=?",
-                                      (result.summary, conversation_id))
+                                      (result.summary, conv["id"]))
         return outcome
+
+    async def extract(self, conversation_id: str, mode: str = "closing") -> ExtractionOutcome:
+        outcome = ExtractionOutcome(conversation_id=conversation_id, mode=mode)
+        job = self.build_job(conversation_id, mode)
+        if job is None:
+            return outcome
+        try:
+            result = await self.llm.complete_json_messages("deep", job.messages,
+                                                           ExtractionResult)
+        except LLMError as exc:
+            log.error("extraction failed for %s: %s", conversation_id, exc)
+            outcome.error = str(exc)[:300]
+            return outcome
+        return await self.apply_result(job, result, outcome)
+
+    async def apply_remote_result(self, raw_json: str, conversation_id: str, mode: str,
+                                  up_to_utt_id: str | None) -> ExtractionResult:
+        """Remote executor (phone) produced raw JSON; validate against the same schema.
+        Raises ValidationError so the caller can relay repair details back."""
+        job = self.build_job(conversation_id, mode, up_to_utt_id=up_to_utt_id)
+        if job is None:
+            raise ValueError("conversation has no unextracted utterances for this task")
+        return await self.llm.validate_json(raw_json, ExtractionResult)
 
     # ------------------------------------------------------------------ helpers
     def _known_entities_text(self) -> str:

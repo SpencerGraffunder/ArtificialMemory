@@ -51,6 +51,10 @@ class PromptSet:
     def __init__(self, prompts: dict[str, Prompt]):
         self._prompts = prompts
 
+    @property
+    def prompts(self) -> dict[str, "Prompt"]:
+        return dict(self._prompts)
+
     def __getitem__(self, name: str) -> Prompt:
         return self._prompts[name]
 

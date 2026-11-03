@@ -143,3 +143,42 @@ deferred to §13 are made here and logged.
 - **Whisper routing is live logic** (WhisperDetector + configurable rms-ratio in Settings): owner + quiet+breathy → query path → priority card; trigger phrase "memory," is the documented fallback. Without ASR bound, whispered text can't be transcribed yet — the classifier gates and the query route is proven by the emitter's "flag as whisper query" toggle (routes through POST /v1/query like §5.5).
 - **Server gaps found while binding UI** (fixed server-side first): `/v1/clarifications/digest` returns `{"questions": [...]}` (client DigestPage); conversations list/detail now have typed Codable models (`ConversationSummary`, `TranscriptLine`) instead of JSONValue soup.
 - **Naming**: app screen `ConversationTimelineView` (SwiftUI owns `TimelineView`).
+
+## Phone-first rebalance (owner directive, 2026-11-03) — supersedes §"the server is the only place that stores memories"
+
+Owner instruction: *"Anything that can be done on the phone without any real tradeoffs,
+do them there. Keep the server for the buffering stuff — to not lose an in-flight LLM
+request. Storage on the phone. Use the existing SearxNG."*
+
+- **Memory storage lives on the phone.** `MemoryStore` (ios/AmbientCore) is a full
+  mirrored SQLite+FTS5 store fed by `GET /v1/memories/sync` (full-state swap; the
+  server may prune, the phone keeps its archive — spec §5.3's never-delete enforced
+  client-side). Phone-side recall (search, ranking, cards) works with no network.
+- **Relevance scoring runs on the phone** for the live loop:
+  `PhoneRelevanceEngine` + `RelevanceMath` port `core/scoring.py`, `core/gating.py`
+  and the echo gate exactly. Parity is CI-enforced:
+  `eval/export_scoring_fixtures.py` regenerates golden cases from the *server's*
+  functions into `ios/.../Fixtures/scoring_parity.json`; `ScoringParityTests` asserts
+  Swift matches to 1e-12 (43 cases: score grid, actionability branch corners, decay,
+  jaccard, semantic, echo tokenizer, full gate ordering/cooldown/budget).
+  The server still scores for WS push, batch replay, and query cards — the phone is
+  an additional executor of the same tuned engine, not a different engine.
+- **LLM extraction executes on the phone** (`TaskWorker`): the server renders prompts
+  and hands them over `GET /v1/tasks/{id}/context` (prompts_hash guards stale claims);
+  the phone calls its own OpenAI-compatible endpoints (`Settings → Phone-side LLM`),
+  persists the raw result **before** POSTing (`task_results` buffer — inference
+  survives app death and network loss), POSTs `{"raw_json": …}`, and the server applies
+  the shared parse→persist path. Server-relayed repair (422 + pydantic detail) mirrors
+  the gateway's single-retry contract. 409 = server already handled → discard.
+  Give-up/network-starvation → `POST /v1/tasks/{id}/abandon` → the server's own
+  fallback LLM pass runs (the original in-flight-request guarantee, inverted: the
+  server is the safety net for the phone).
+- **Server keeps**: durable ingest buffer (outbox drains into it), extraction queue +
+  fallback timing, dedup/supersession/entity graph, cross-device cards, SearxNG
+  web search (existing Unraid instance; `SEARCH_PROVIDER=searxng` + `SEARXNG_BASE_URL`,
+  default `http://searxng:8080` on the compose network).
+- Tradeoffs accepted: phone LLM endpoints are user-configured (local vLLM or hosted
+  key in Settings); extraction latency on cellular depends on the chosen endpoint —
+  the server fallback deadline covers silence; parity tests re-export is a manual
+  step (fixture file freshness is asserted by the test's case count + CI regeneration
+  note in the file header).

@@ -20,6 +20,13 @@ final class AppState: ObservableObject {
         static let whisperRatio = "ambient.whisperRatio"
         static let shareLocation = "ambient.shareLocation"
         static let gaps = "ambient.gaps"
+        static let phoneExtraction = "ambient.phoneExtraction"
+        static let llmDeepURL = "ambient.llmDeepURL"
+        static let llmDeepModel = "ambient.llmDeepModel"
+        static let llmDeepKey = "ambient.llmDeepKey"
+        static let llmFastURL = "ambient.llmFastURL"
+        static let llmFastModel = "ambient.llmFastModel"
+        static let llmFastKey = "ambient.llmFastKey"
     }
 
     @Published var status: NetStatus = .unknown
@@ -78,6 +85,25 @@ final class AppState: ObservableObject {
         set { defaults.set(newValue.map(\.timeIntervalSince1970), forKey: Keys.gaps) }
     }
 
+    // Phone-side LLM + extraction (owner decision 2026-11-03: do on the phone what
+    // costs nothing extra there; the server keeps the in-flight buffering role).
+    var phoneExtractionOn: Bool {
+        get { defaults.object(forKey: Keys.phoneExtraction) as? Bool ?? true }
+        set { defaults.set(newValue, forKey: Keys.phoneExtraction) }
+    }
+    var phoneLLM: PhoneLLMConfig {
+        var c = PhoneLLMConfig()
+        c.deep = LLMProfileConfig(
+            baseURL: defaults.string(forKey: Keys.llmDeepURL) ?? "",
+            model: defaults.string(forKey: Keys.llmDeepModel) ?? "",
+            apiKey: defaults.string(forKey: Keys.llmDeepKey) ?? "")
+        c.fast = LLMProfileConfig(
+            baseURL: defaults.string(forKey: Keys.llmFastURL) ?? "",
+            model: defaults.string(forKey: Keys.llmFastModel) ?? "",
+            apiKey: defaults.string(forKey: Keys.llmFastKey) ?? "")
+        return c
+    }
+
     private init() {
         Task { await bootstrap() }
     }
@@ -106,6 +132,7 @@ final class AppState: ObservableObject {
             self.sink = sink
             try? audioBuffer = RollingAudioBuffer(directory: audio)
             await uploader.start()
+            await wirePhoneStack(base: base, api: api, history: history)
 
             if token.isEmpty {
                 status = .needsToken
@@ -123,6 +150,124 @@ final class AppState: ObservableObject {
 
     private(set) var sink: OutboxSink?
     private var audioBuffer: RollingAudioBuffer?
+
+    // MARK: phone-first runtime (storage + scoring + LLM tasks live on the phone)
+
+    @Published var memoryCount = 0
+    @Published var heldResults = 0
+    private(set) var memoryStore: MemoryStore?
+    private(set) var taskResults: LocalTaskResults?
+    private(set) var phoneEngine: PhoneRelevanceEngine?
+    private(set) var taskWorker: TaskWorker?
+    private var phoneLoop: Task<Void, Never>?
+
+    private func wirePhoneStack(base: URL, api: APIClient, history: CardHistory) async {
+        do {
+            let mem = try MemoryStore(path: base.appendingPathComponent("memories.sqlite").path)
+            let res = try LocalTaskResults(path: base.appendingPathComponent("task_results.sqlite").path)
+            let eng = PhoneRelevanceEngine(retrieval: StoreRetrieval(store: mem))
+            await eng.configure(
+                dismiss: { id in (try? await history.dismissCount(memoryId: id)) ?? 0 },
+                cooldown: (try? await history.lastShownByMemory()) ?? [:])
+            self.memoryStore = mem
+            self.taskResults = res
+            self.phoneEngine = eng
+            let llm = LLMClient(config: phoneLLM)
+            taskWorker = TaskWorker(api: api, llm: phoneLLM.deep.isConfigured ? llm : nil, results: res)
+            memoryCount = (try? await mem.count()) ?? 0
+            startPhoneLoops()
+            await syncMemories()   // first mirror ASAP
+        } catch {
+            log.error("phone stack failed: \(error.localizedDescription)")
+        }
+    }
+
+    /// Pull the full memory mirror from the server (rows may be pruned server-side;
+    /// we re-swap the whole table — see MemoryStore.replaceAll).
+    func syncMemories() async {
+        guard let api, let memoryStore else { return }
+        do {
+            let rows = try await api.memoriesSync()
+            try await memoryStore.replaceAll(with: rows)
+            memoryCount = (try? await memoryStore.count()) ?? memoryCount
+        } catch {
+            log.info("memory sync deferred: offline")   // next loop retries; nothing lost
+        }
+    }
+
+    /// Debug aid: server-free memories so phone-side card scoring can be exercised
+    /// fully offline (Debug screen). Existing rows are preserved.
+    func seedDemoMemories() async {
+        guard let memoryStore else { return }
+        let now = Date().isoWire
+        func m(_ id: String, _ t: String, _ type: String, _ ents: [String]) -> SyncedMemory {
+            SyncedMemory(id: "demo-" + id, text: t, type: type, importance: 0.85,
+                         confidence: 0.95, eventStart: nil, eventEnd: nil,
+                         validFrom: now, validTo: nil, recordedAt: now,
+                         status: "active", source: "demo", speakerName: "Jasmine",
+                         entities: ents)
+        }
+        let demo = [
+            m("chili", "Dinner next Friday will be chili, booked at Chili's",
+              "event", ["Jasmine", "Chili"]),
+            m("maya", "Maya adopted two cats in September", "fact", ["Maya"]),
+            m("deck", "Deck renovation is due in two weeks — contractor hired by Nov 17",
+              "commitment", ["Deck"]),
+        ]
+        let existing = (try? await memoryStore.recent(limit: 500,
+                                                      includeInactive: true)) ?? []
+        let keep = existing.map { e in
+            SyncedMemory(id: e.id, text: e.text, type: e.type,
+                         importance: e.importance, confidence: e.confidence,
+                         eventStart: e.eventStart?.isoWire, eventEnd: e.eventEnd?.isoWire,
+                         validFrom: (e.validFrom ?? e.recordedAt ?? Date()).isoWire,
+                         validTo: e.validTo?.isoWire,
+                         recordedAt: (e.recordedAt ?? Date()).isoWire,
+                         status: e.status, source: e.source,
+                         speakerName: e.speakerName, entities: e.entities)
+        }
+        try? await memoryStore.replaceAll(with: keep + demo)
+        memoryCount = (try? await memoryStore.count()) ?? memoryCount
+        toast = "Seeded 3 demo memories — now emit 'what about friday dinner?'"
+    }
+
+    /// Battery-aware loop: task queue every 15 s while active, memory sync every
+    /// ~10 min, engine fade tick with it.
+    private func startPhoneLoops() {
+        phoneLoop?.cancel()
+        phoneLoop = Task { [weak self] in
+            var cycle = 0
+            while !Task.isCancelled {
+                guard let self else { return }
+                cycle += 1
+                if self.phoneExtractionOn, self.phoneLLM.deep.isConfigured {
+                    await self.taskWorker?.runPendingOnce()
+                }
+                if cycle % 40 == 0 { await self.syncMemories() }
+                // fade expired phone cards (server cards fade via WS cardDismiss)
+                if let engine = self.phoneEngine {
+                    let gone = await engine.tick(now: .init())
+                    if !gone.isEmpty {
+                        await MainActor.run {
+                            self.cards.removeAll { gone.contains($0.id) }
+                        }
+                    }
+                }
+                self.heldResults = (try? await self.taskResults?.pending())?.count ?? 0
+                try? await Task.sleep(for: .seconds(15))
+            }
+        }
+    }
+
+    /// Score the utterance on-device the moment it's captured — cards appear with
+    /// no server round-trip, and this works fully offline once the mirror exists.
+    func runPhonePass(text: String, speakerId: String? = nil) async {
+        guard let phoneEngine else { return }
+        let u = EngineUtterance(text: text, speakerLabel: currentSpeaker,
+                                speakerId: speakerId, ts: .init())
+        guard let fresh = try? await phoneEngine.onUtterance(u) else { return }
+        for card in fresh { await MainActor.run { self.showCard(card) } }
+    }
 
     func reconnectSocket() async {
         guard let socket, let url = await router?.current() else { return }
@@ -173,6 +318,9 @@ final class AppState: ObservableObject {
     func feedback(_ card: Card, kind: FeedbackKind) {
         if kind == .dismiss { cards.removeAll { $0.id == card.id } }
         if kind == .pin {
+            if card.id.hasPrefix("local-") {
+                Task { await phoneEngine?.pin(cardId: card.id) }  // survives TTL fade
+            }
             if let i = cards.firstIndex(where: { $0.id == card.id }) {
                 var pinned = card
                 pinned.priority = true
@@ -272,7 +420,9 @@ final class AppState: ObservableObject {
         let isOwner = currentSpeaker == "Owner"
         guard whisper.isWhisper(samplesPerFrame: samples, isOwner: isOwner) else { return }
         // Whispered speech is a QUERY, never conversation content — but text needs
-        // ASR first; when the ASR binding lands, route text through `ask(_:)`.
+        // ASR first; when the ASR binding lands, route text through `ask(_:)` AND
+        // feed non-whisper transcripts through `runPhonePass(text:)` here — the
+        // phone-side scoring loop is already wired and offline-capable.
     }
 
     /// Direct query path (spec §5.5): whisper text, search bar, or hold-to-ask.
@@ -295,7 +445,11 @@ final class AppState: ObservableObject {
                                    isWhisper: whisper, device: "iphone-demo")
         Task {
             await sink.ingest(event)
-            if whisper { await ask(text) }   // spec §3.6: query path, priority card
+            if whisper {
+                await ask(text)   // spec §3.6: query path, priority card
+            } else {
+                await runPhonePass(text: text, speakerId: "demo")
+            }
             queued = (try? await outbox?.pendingCount()) ?? queued
         }
     }
@@ -325,6 +479,12 @@ final class AppState: ObservableObject {
         await bootstrapRouterEndpointsOnly()
         await reconnectSocket()
         await refreshHealth()
+        // phone LLM settings may have changed: rebuild the worker against them
+        if let api, let taskResults {
+            let llm = LLMClient(config: phoneLLM)
+            taskWorker = TaskWorker(api: api, llm: phoneLLM.deep.isConfigured ? llm : nil,
+                                    results: taskResults)
+        }
     }
 
     private func bootstrapRouterEndpointsOnly() async {

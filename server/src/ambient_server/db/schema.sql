@@ -210,3 +210,28 @@ CREATE TABLE IF NOT EXISTS utterance_vectors_fb (
     utterance_id TEXT PRIMARY KEY REFERENCES utterances(id) ON DELETE CASCADE,
     embedding    BLOB NOT NULL
 );
+
+-- Remote-executed jobs (phone runs the LLM; this queue is the durable buffer so an
+-- in-flight extraction survives phone death). Status flow:
+--   pending → (client POST /result claims) applying → done
+--   pending → (fallback delay elapsed) running_local → done | failed
+--   pending → (client abandoned / repair exhausted) → running_local (immediately eligible)
+CREATE TABLE IF NOT EXISTS extraction_tasks (
+    id             TEXT PRIMARY KEY,
+    conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+    mode           TEXT NOT NULL DEFAULT 'closing',   -- closing | incremental
+    status         TEXT NOT NULL DEFAULT 'pending',   -- pending|applying|running_local|done|failed
+    attempts       INTEGER NOT NULL DEFAULT 0,
+    prompts_hash   TEXT NOT NULL,
+    last_utt_id    TEXT,                              -- transcript snapshot bound at context time
+    error          TEXT,
+    result_source  TEXT,                              -- phone | server
+    created_at     TEXT NOT NULL,
+    fallback_after TEXT NOT NULL,                     -- server may run it after this
+    updated_at     TEXT NOT NULL,
+    completed_at   TEXT
+);
+CREATE INDEX IF NOT EXISTS extraction_tasks_due ON extraction_tasks(status, fallback_after);
+CREATE UNIQUE INDEX IF NOT EXISTS extraction_tasks_open
+    ON extraction_tasks(conversation_id, mode)
+    WHERE status IN ('pending', 'applying', 'running_local');

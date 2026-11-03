@@ -1,0 +1,514 @@
+{
+ "generated_note": "server/.venv/bin/python eval/export_scoring_fixtures.py",
+ "now": "2026-11-03T12:00:00+00:00",
+ "cases": [
+  {
+   "kind": "score",
+   "name": "all-ones",
+   "features": {
+    "semantic": 1,
+    "entity_overlap": 1,
+    "actionability": 1,
+    "importance": 1,
+    "recency_decay": 1,
+    "speaker_match": 1,
+    "recently_shown": 0,
+    "dismissed_before": 0
+   },
+   "weights": {
+    "semantic": 0.4,
+    "entity_overlap": 0.2,
+    "actionability": 0.15,
+    "importance": 0.1,
+    "recency_decay": 0.1,
+    "speaker_match": 0.05,
+    "recently_shown": -0.3,
+    "dismissed_before": -0.3
+   },
+   "expected": 1.0
+  },
+  {
+   "kind": "score",
+   "name": "all-zero",
+   "features": {
+    "semantic": 0,
+    "entity_overlap": 0,
+    "actionability": 0,
+    "importance": 0,
+    "recency_decay": 0,
+    "speaker_match": 0,
+    "recently_shown": 0,
+    "dismissed_before": 0
+   },
+   "weights": {
+    "semantic": 0.4,
+    "entity_overlap": 0.2,
+    "actionability": 0.15,
+    "importance": 0.1,
+    "recency_decay": 0.1,
+    "speaker_match": 0.05,
+    "recently_shown": -0.3,
+    "dismissed_before": -0.3
+   },
+   "expected": 0.0
+  },
+  {
+   "kind": "score",
+   "name": "punished",
+   "features": {
+    "semantic": 0.9,
+    "entity_overlap": 0.8,
+    "actionability": 1,
+    "importance": 0.9,
+    "recency_decay": 0.9,
+    "speaker_match": 1,
+    "recently_shown": 1,
+    "dismissed_before": 1
+   },
+   "weights": {
+    "semantic": 0.4,
+    "entity_overlap": 0.2,
+    "actionability": 0.15,
+    "importance": 0.1,
+    "recency_decay": 0.1,
+    "speaker_match": 0.05,
+    "recently_shown": -0.3,
+    "dismissed_before": -0.3
+   },
+   "expected": 0.3000000000000001
+  },
+  {
+   "kind": "score",
+   "name": "typical-hit",
+   "features": {
+    "semantic": 0.62,
+    "entity_overlap": 0.33,
+    "actionability": 0.4,
+    "importance": 0.7,
+    "recency_decay": 0.84,
+    "speaker_match": 0.5,
+    "recently_shown": 0,
+    "dismissed_before": 0.5
+   },
+   "weights": {
+    "semantic": 0.4,
+    "entity_overlap": 0.2,
+    "actionability": 0.15,
+    "importance": 0.1,
+    "recency_decay": 0.1,
+    "speaker_match": 0.05,
+    "recently_shown": -0.3,
+    "dismissed_before": -0.3
+   },
+   "expected": 0.403
+  },
+  {
+   "kind": "score",
+   "name": "weak-noise",
+   "features": {
+    "semantic": 0.11,
+    "entity_overlap": 0,
+    "actionability": 0.25,
+    "importance": 0.3,
+    "recency_decay": 0.2,
+    "speaker_match": 0,
+    "recently_shown": 1,
+    "dismissed_before": 0
+   },
+   "weights": {
+    "semantic": 0.4,
+    "entity_overlap": 0.2,
+    "actionability": 0.15,
+    "importance": 0.1,
+    "recency_decay": 0.1,
+    "speaker_match": 0.05,
+    "recently_shown": -0.3,
+    "dismissed_before": -0.3
+   },
+   "expected": -0.16849999999999998
+  },
+  {
+   "kind": "score",
+   "name": "custom-weights",
+   "features": {
+    "semantic": 0.5,
+    "entity_overlap": 0.5,
+    "actionability": 0.5,
+    "importance": 0.5,
+    "recency_decay": 0.5,
+    "speaker_match": 0.5,
+    "recently_shown": 0.5,
+    "dismissed_before": 0.5
+   },
+   "weights": {
+    "semantic": 0.5,
+    "entity_overlap": 0.1,
+    "actionability": 0.1,
+    "importance": 0.1,
+    "recency_decay": 0.1,
+    "speaker_match": 0.05,
+    "recently_shown": -0.5,
+    "dismissed_before": -0.15
+   },
+   "expected": 0.14999999999999997
+  },
+  {
+   "kind": "actionability",
+   "name": "event-delta-past-beyond-48h",
+   "memory_type": "event",
+   "delta_h": -49,
+   "about_speaker": false,
+   "has_date": true,
+   "expected": 0.25
+  },
+  {
+   "kind": "actionability",
+   "name": "event-delta-just-past",
+   "memory_type": "event",
+   "delta_h": -47,
+   "about_speaker": false,
+   "has_date": true,
+   "expected": 1.0
+  },
+  {
+   "kind": "actionability",
+   "name": "event-delta-now",
+   "memory_type": "event",
+   "delta_h": 0,
+   "about_speaker": false,
+   "has_date": true,
+   "expected": 1.0
+  },
+  {
+   "kind": "actionability",
+   "name": "event-delta-horizon-inside",
+   "memory_type": "event",
+   "delta_h": 335,
+   "about_speaker": false,
+   "has_date": true,
+   "expected": 1.0
+  },
+  {
+   "kind": "actionability",
+   "name": "event-delta-horizon-outside",
+   "memory_type": "event",
+   "delta_h": 337,
+   "about_speaker": false,
+   "has_date": true,
+   "expected": 0.6
+  },
+  {
+   "kind": "actionability",
+   "name": "event-delta-near-future",
+   "memory_type": "event",
+   "delta_h": 2136,
+   "about_speaker": false,
+   "has_date": true,
+   "expected": 0.6
+  },
+  {
+   "kind": "actionability",
+   "name": "event-delta-far-future",
+   "memory_type": "event",
+   "delta_h": 2184,
+   "about_speaker": false,
+   "has_date": true,
+   "expected": 0.35
+  },
+  {
+   "kind": "actionability",
+   "name": "commitment-no-date",
+   "memory_type": "commitment",
+   "delta_h": null,
+   "about_speaker": false,
+   "has_date": false,
+   "expected": 0.8
+  },
+  {
+   "kind": "actionability",
+   "name": "plan-with-date",
+   "memory_type": "plan",
+   "delta_h": null,
+   "about_speaker": false,
+   "has_date": true,
+   "expected": 0.4
+  },
+  {
+   "kind": "actionability",
+   "name": "plan-no-date",
+   "memory_type": "plan",
+   "delta_h": null,
+   "about_speaker": false,
+   "has_date": false,
+   "expected": 0.2
+  },
+  {
+   "kind": "actionability",
+   "name": "preference",
+   "memory_type": "preference",
+   "delta_h": null,
+   "about_speaker": false,
+   "has_date": false,
+   "expected": 0.0
+  },
+  {
+   "kind": "actionability",
+   "name": "event-speaker-boost",
+   "memory_type": "event",
+   "delta_h": null,
+   "about_speaker": true,
+   "has_date": false,
+   "expected": 0.6000000000000001
+  },
+  {
+   "kind": "recency",
+   "name": "fresh",
+   "age_h": 0,
+   "half_life_h": 168,
+   "expected": 1.0
+  },
+  {
+   "kind": "recency",
+   "name": "one-half-life",
+   "age_h": 168,
+   "half_life_h": 168,
+   "expected": 0.5
+  },
+  {
+   "kind": "recency",
+   "name": "two-half-lives",
+   "age_h": 336,
+   "half_life_h": 168,
+   "expected": 0.25
+  },
+  {
+   "kind": "recency",
+   "name": "week-old",
+   "age_h": 1176,
+   "half_life_h": 168,
+   "expected": 0.0078125
+  },
+  {
+   "kind": "speaker",
+   "name": "present-wins",
+   "present": true,
+   "entity": true,
+   "expected": 1.0
+  },
+  {
+   "kind": "speaker",
+   "name": "entity-only",
+   "present": false,
+   "entity": true,
+   "expected": 0.5
+  },
+  {
+   "kind": "speaker",
+   "name": "none",
+   "present": false,
+   "entity": false,
+   "expected": 0.0
+  },
+  {
+   "kind": "jaccard",
+   "name": "identical",
+   "a": [
+    "maya",
+    "park"
+   ],
+   "b": [
+    "maya",
+    "park"
+   ],
+   "expected": 1.0
+  },
+  {
+   "kind": "jaccard",
+   "name": "subset",
+   "a": [
+    "maya"
+   ],
+   "b": [
+    "maya",
+    "park"
+   ],
+   "expected": 0.5
+  },
+  {
+   "kind": "jaccard",
+   "name": "disjoint",
+   "a": [
+    "a"
+   ],
+   "b": [
+    "b"
+   ],
+   "expected": 0.0
+  },
+  {
+   "kind": "jaccard",
+   "name": "empty-side",
+   "a": [],
+   "b": [
+    "b"
+   ],
+   "expected": 0.0
+  },
+  {
+   "kind": "dismissed",
+   "name": "never",
+   "count": 0,
+   "expected": 0.0
+  },
+  {
+   "kind": "dismissed",
+   "name": "once",
+   "count": 1,
+   "expected": 0.5
+  },
+  {
+   "kind": "dismissed",
+   "name": "twice",
+   "count": 2,
+   "expected": 1.0
+  },
+  {
+   "kind": "dismissed",
+   "name": "capped",
+   "count": 5,
+   "expected": 1.0
+  },
+  {
+   "kind": "semantic",
+   "name": "window-only",
+   "window_sim": 0.5,
+   "utt_sim": null,
+   "expected": 0.5
+  },
+  {
+   "kind": "semantic",
+   "name": "utt-only",
+   "window_sim": null,
+   "utt_sim": 0.8,
+   "expected": 0.8
+  },
+  {
+   "kind": "semantic",
+   "name": "max-of-both",
+   "window_sim": 0.5,
+   "utt_sim": 0.8,
+   "expected": 0.8
+  },
+  {
+   "kind": "semantic",
+   "name": "negatives-clamped",
+   "window_sim": -0.2,
+   "utt_sim": -0.1,
+   "expected": 0.0
+  },
+  {
+   "kind": "semantic",
+   "name": "no-embeddings",
+   "window_sim": null,
+   "utt_sim": null,
+   "expected": 0.0
+  },
+  {
+   "kind": "echo",
+   "name": "verbatim-relay",
+   "memory_text": "Jasmine booked Chili for next Friday dinner",
+   "window_text": "yeah jasmine booked chili for next friday dinner totally",
+   "expected": 1.0
+  },
+  {
+   "kind": "echo",
+   "name": "unrelated",
+   "memory_text": "Jasmine booked Chili for next Friday dinner",
+   "window_text": "she also adopted another cat last month",
+   "expected": 0.0
+  },
+  {
+   "kind": "echo",
+   "name": "partial-relay",
+   "memory_text": "Maya adopted two cats in september",
+   "window_text": "maya adopted cats",
+   "expected": 0.6
+  },
+  {
+   "kind": "echo",
+   "name": "empty-window",
+   "memory_text": "ARTES ships friday",
+   "window_text": "",
+   "expected": 0.0
+  },
+  {
+   "kind": "gate",
+   "name": "mixed-scenario",
+   "scores": [
+    {
+     "memory_id": "m-hot",
+     "score": 0.91
+    },
+    {
+     "memory_id": "m-warm",
+     "score": 0.62
+    },
+    {
+     "memory_id": "m-edge",
+     "score": 0.55
+    },
+    {
+     "memory_id": "m-cold",
+     "score": 0.54
+    },
+    {
+     "memory_id": "m-cooled",
+     "score": 0.88
+    },
+    {
+     "memory_id": "m-extra",
+     "score": 0.6
+    }
+   ],
+   "cooldown_ids": {
+    "m-cooled": 599
+   },
+   "active_cards": 1,
+   "threshold": 0.55,
+   "cooldown_s": 600,
+   "max_cards": 3,
+   "expected": [
+    {
+     "memory_id": "m-hot",
+     "allowed": true,
+     "reason": "ok"
+    },
+    {
+     "memory_id": "m-warm",
+     "allowed": true,
+     "reason": "ok"
+    },
+    {
+     "memory_id": "m-edge",
+     "allowed": false,
+     "reason": "budget"
+    },
+    {
+     "memory_id": "m-cold",
+     "allowed": false,
+     "reason": "below_threshold"
+    },
+    {
+     "memory_id": "m-cooled",
+     "allowed": false,
+     "reason": "cooldown"
+    },
+    {
+     "memory_id": "m-extra",
+     "allowed": false,
+     "reason": "budget"
+    }
+   ]
+  }
+ ]
+}

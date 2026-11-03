@@ -34,6 +34,30 @@ class LLMError(RuntimeError):
     pass
 
 
+def build_json_messages(prompt: Prompt, model: type[BaseModel], user: str,
+                        **extra: object) -> list[dict[str, str]]:
+    """The exact messages a JSON completion would send — remote executors (phone LLM)
+    get these verbatim so there is one prompt pipeline, not two."""
+    system = (
+        prompt.render(**extra)
+        + "\n\nRespond ONLY with JSON matching this schema (no prose, no code fences):\n"
+        + _schema_hint(model)
+    )
+    return [
+        {"role": "system", "content": system},
+        {"role": "user", "content": user},
+    ]
+
+
+def repair_followup_messages(messages: list[dict[str, str]], raw: str,
+                             error: object) -> list[dict[str, str]]:
+    return messages + [
+        {"role": "assistant", "content": raw[:2000]},
+        {"role": "user", "content": "Your previous reply was not valid JSON for the "
+         f"schema. Error: {str(error)[:800]}\nReply again with ONLY valid JSON."},
+    ]
+
+
 def _schema_hint(model: type[BaseModel]) -> str:
     schema = model.model_json_schema()
     return json.dumps(schema, ensure_ascii=False, separators=(",", ":"))
@@ -82,26 +106,22 @@ class LLMGateway:
     async def complete_json(self, profile: str, prompt: Prompt, model: Type[T],
                             user: str, **extra: object) -> T:
         """Schema-constrained JSON; one repair retry; LLMError otherwise."""
-        system = (
-            prompt.render(**extra)
-            + "\n\nRespond ONLY with JSON matching this schema (no prose, no code fences):\n"
-            + _schema_hint(model)
-        )
-        messages = [
-            {"role": "system", "content": system},
-            {"role": "user", "content": user},
-        ]
+        return await self.complete_json_messages(
+            profile, build_json_messages(prompt, model, user=user, **extra), model)
+
+    async def validate_json(self, raw: str, model: Type[T]) -> T:
+        """Validate a remote executor's reply; raises ValidationError with the detail the
+        phone needs for its repair-retry (mirrors the local retry's error text)."""
+        return model.model_validate(_parse_json(raw))
+
+    async def complete_json_messages(self, profile: str, messages: list[dict[str, str]],
+                                     model: Type[T]) -> T:
         raw = await self._chat(profile, messages, json_mode=True)
         try:
             return model.model_validate(_parse_json(raw))
         except (ValueError, ValidationError) as first:
-            repair = (
-                "Your previous reply was not valid JSON for the schema. "
-                f"Error: {str(first)[:800]}\nReply again with ONLY valid JSON."
-            )
             raw2 = await self._chat(
-                profile, messages + [{"role": "assistant", "content": raw[:2000]},
-                                     {"role": "user", "content": repair}], json_mode=True)
+                profile, repair_followup_messages(messages, raw, first), json_mode=True)
             try:
                 return model.model_validate(_parse_json(raw2))
             except (ValueError, ValidationError) as second:

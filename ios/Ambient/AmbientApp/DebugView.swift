@@ -24,13 +24,32 @@ struct DebugView: View {
                     LabeledContent("Listening", value: state.listening.rawValue)
                     LabeledContent("Thermal", value: "\(thermal)")
                 }
-                Section("Demo utterance → real outbox + WS") {
+                Section("Phone-first runtime") {
+                    LabeledContent("Memories on device", value: "\(state.memoryCount)")
+                    LabeledContent("LLM results buffered", value: "\(state.heldResults)")
+                    Toggle("Phone extraction on", isOn: Binding(
+                        get: { state.phoneExtractionOn },
+                        set: { state.phoneExtractionOn = $0 }))
+                    HStack {
+                        Button("Sync memories now") { Task { await state.syncMemories() } }
+                        Button("Run task cycle") { Task {
+                            await state.taskWorker?.runPendingOnce()
+                            state.toast = "Task cycle done — see server /v1/tasks"
+                        } }
+                    }
+                    Button("Seed demo memories (offline card test)") {
+                        Task { await state.seedDemoMemories() }
+                    }
+                    Text("Buffered results survive app death: an LLM answer is persisted the instant it lands, before the POST. If the network dies mid-request nothing is recomputed when the app returns.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Section("Demo utterance → phone scoring + outbox + WS") {
                     TextField("text", text: $demoText, axis: .vertical)
                         .font(.body.monospaced())
                     Toggle("flag as whisper query", isOn: $asWhisper)
                     Button("Emit") { state.emitDemoUtterance(demoText, whisper: asWhisper) }
                         .buttonStyle(.borderedProminent)
-                    Text("Watch the server log: ingest → extraction → card pushed back over /v1/live. This proves end-to-end capture→memory→card on a physical device.")
+                    Text("Watch the server log: ingest → extraction → card pushed back over /v1/live. With demo memories seeded, a matching card also appears immediately from phone-side scoring — even in airplane mode.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 Section("Bindings still pending device spikes (M0)") {

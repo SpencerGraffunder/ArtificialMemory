@@ -25,6 +25,7 @@ from ..models import (
     parse_iso,
     utc_now,
 )
+from ..pipeline.relevance import EngineEvent
 from ..services import AppContext
 
 log = logging.getLogger("ambient.api")
@@ -119,6 +120,12 @@ def create_app(ctx: AppContext) -> FastAPI:
                     "total": len(rows)}
         out = [ctx.store.memory_out(h.row).model_dump() for h in hits]
         return {"memories": out, "total": len(out)}
+
+    @app.get("/v1/memories/sync", dependencies=[Depends(auth)], tags=["memories"])
+    async def memories_sync() -> dict[str, Any]:
+        """Full state incl. superseded/retracted (phone mirrors locally; status field
+        drives 'still true?' UI). Count changes ride WS heartbeats."""
+        return {"server_time": iso(utc_now()), "memories": ctx.store.memories_sync()}
 
     @app.get("/v1/memories/{memory_id}", dependencies=[Depends(auth)], tags=["memories"])
     async def get_memory(memory_id: str) -> dict[str, Any]:
@@ -250,6 +257,84 @@ def create_app(ctx: AppContext) -> FastAPI:
                                     definition=body.get("definition"), source="manual")
         return {"ok": True, "term": term.lower()}
 
+    # ---------------------------------------------------------------- extraction tasks
+    # Phone executes the LLM with its own credentials; this queue survives phone death.
+    @app.get("/v1/tasks/pending", dependencies=[Depends(auth)], tags=["tasks"])
+    async def tasks_pending() -> dict[str, Any]:
+        rows = ctx.store.list_pending_tasks()
+        return {"tasks": rows, "count": len(rows),
+                "prompts_hash": ctx.prompts.content_hash()}
+
+    @app.get("/v1/tasks/{task_id}/context", dependencies=[Depends(auth)], tags=["tasks"])
+    async def task_context(task_id: str) -> dict[str, Any]:
+        task = ctx.store.get_extraction_task(task_id)
+        if task is None:
+            raise HTTPException(404, "no such task")
+        job = ctx.extraction.build_job(task["conversation_id"], task["mode"])
+        if job is None:
+            # nothing unextracted (revision or race) — close it out, no LLM needed
+            ctx.store.complete_extraction_task(task_id, "phone", error=None)
+            return {"completed": True, "reason": "no unextracted utterances"}
+        last_utt = job.rows[-1]["id"]
+        ctx.store.set_task_snapshot(task_id, last_utt, ctx.prompts.content_hash())
+        return {
+            "completed": False,
+            "task_id": task_id,
+            "conversation_id": task["conversation_id"],
+            "mode": task["mode"],
+            "profile": "deep",
+            "messages": job.messages,              # verbatim server-rendered prompt
+            "prompts_hash": ctx.prompts.content_hash(),
+            "utterance_count": len(job.rows),
+        }
+
+    @app.post("/v1/tasks/{task_id}/result", dependencies=[Depends(auth)], tags=["tasks"])
+    async def task_result(task_id: str, body: dict[str, Any]) -> dict[str, Any]:
+        raw = str(body.get("raw_json", ""))
+        task = ctx.store.get_extraction_task(task_id)
+        if task is None:
+            raise HTTPException(404, "no such task")
+        verdict = ctx.store.claim_extraction_task(task_id, ctx.prompts.content_hash())
+        if verdict == "stale_hash":
+            raise HTTPException(409, {"error": "stale_prompts",
+                                      "prompts_hash": ctx.prompts.content_hash()})
+        if verdict == "not_claimable":
+            raise HTTPException(409, {"error": "already_completed_or_running",
+                                      "status": task["status"]})
+        try:
+            result = await ctx.extraction.apply_remote_result(
+                raw, task["conversation_id"], task["mode"], task["last_utt_id"])
+        except Exception as exc:  # noqa: BLE001 — schema errors relay for phone-side repair
+            ctx.store.release_task_to_pending(task_id, error=str(exc)[:300])
+            raise HTTPException(422, {"error": "invalid_json",
+                                      "detail": str(exc)[:1200],
+                                      "hint": "repair your JSON against the schema and "
+                                              "re-POST; POST /abandon to hand off"}) from exc
+        fresh = ctx.store.get_extraction_task(task_id)
+        job = ctx.extraction.build_job(task["conversation_id"], task["mode"],
+                                       up_to_utt_id=fresh["last_utt_id"])
+        if job is None:
+            ctx.store.complete_extraction_task(task_id, "phone")
+            return {"ok": True, "facts_created": 0, "memories": [], "clarifications": 0}
+        outcome = await ctx.extraction.apply_result(job, result)
+        ctx.store.complete_extraction_task(task_id, "phone")
+        await ctx._dispatch(EngineEvent(type="status"))
+        return {"ok": True, "facts_created": len(outcome.facts_created),
+                "memories": outcome.memory_texts,
+                "clarifications": len(outcome.clarifications_created)}
+
+    @app.post("/v1/tasks/{task_id}/abandon", dependencies=[Depends(auth)], tags=["tasks"])
+    async def task_abandon(task_id: str, body: dict[str, Any]) -> dict[str, Any]:
+        ctx.store.abandon_extraction_task(task_id, str(body.get("reason", "phone gave up")))
+        return {"ok": True, "server_will_run": True}
+
+    # ---------------------------------------------------------------- prompts (parity)
+    @app.get("/v1/prompts", dependencies=[Depends(auth)], tags=["meta"])
+    async def prompts() -> dict[str, Any]:
+        return {"prompts_hash": ctx.prompts.content_hash(),
+                "prompts": {name: {"version": p.version, "body": p.body}
+                            for name, p in ctx.prompts.prompts.items()}}
+
     # ---------------------------------------------------------------- query
     @app.post("/v1/query", response_model=dict, dependencies=[Depends(auth)], tags=["query"])
     async def query(req: QueryRequest) -> dict[str, Any]:
@@ -312,7 +397,9 @@ def create_app(ctx: AppContext) -> FastAPI:
                     await ws.send_json(ServerEnvelope(
                         type="status",
                         status={"server_time": iso(utc_now()), "ok": True,
-                                "queue_hint": ctx.store.stats()},
+                                "queue_hint": ctx.store.stats(),
+                                "pending_tasks": ctx.store.pending_task_count(),
+                                "memories": ctx.store.stats()["memories"]},
                     ).model_dump(mode="json"))
                 elif env.type in ("utterance", "utterance_revision") and env.utterance:
                     if env.type == "utterance_revision":

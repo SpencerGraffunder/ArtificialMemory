@@ -142,8 +142,7 @@ class AppContext:
         if n and conv_id:
             conv_row = self.store.get_conversation(conv_id)
             if conv_row and conv_row["utterance_count"] % n == 0:
-                self._spawn(self.extraction.extract(conv_id, mode="incremental"),
-                            label=f"incremental-extract:{conv_id}")
+                self._schedule_extraction(conv_id, "incremental")
         return conv_id, events
 
     def _route_conversation(self, ev: UtteranceEvent, now: datetime) -> str:
@@ -226,11 +225,29 @@ class AppContext:
 
         task.add_done_callback(done)
 
+    # ---------------------------------------------------------------- extraction scheduling
+    def _schedule_extraction(self, conversation_id: str, mode: str) -> str:
+        """Immediate (classic) or queued-for-phone (delegated) — the single fork."""
+        ex = self.cfg.extraction
+        if not ex.delegated:
+            self._spawn(self.extraction.extract(conversation_id, mode=mode),
+                        label=f"{mode}-extract:{conversation_id}")
+            return "immediate"
+        delay = (ex.fallback_delay_s if mode == "closing"
+                 else ex.incremental_fallback_delay_s)
+        return self.store.enqueue_extraction_task(
+            conversation_id, mode, self.prompts.content_hash(),
+            utc_now() + timedelta(seconds=delay))
+
     async def close_conversation(self, conversation_id: str, reason: str = "manual") -> dict:
         conv = self.store.get_conversation(conversation_id)
         if conv is None or conv["closed_at"] is not None:
             return {"error": "not open"}
         self.store.close_conversation(conversation_id, reason, utc_now())
+        if self.cfg.extraction.delegated:
+            tid = self._schedule_extraction(conversation_id, "closing")
+            await self._dispatch(EngineEvent(type="status"))
+            return {"queued_task": tid, "conversation_id": conversation_id}
         outcome = await self.extraction.extract(conversation_id, mode="closing")
         return outcome.to_dict()
 
@@ -264,8 +281,52 @@ class AppContext:
         await self._drain_observations(limit=2)
         # 5. daily digest marking (app reads /v1/clarifications; push later)
         await self._maybe_mark_digest(now)
+        # 6. extraction-task queue maintenance (delegated mode durability)
+        if self.cfg.extraction.delegated:
+            stale = now - timedelta(seconds=self.cfg.extraction.claim_stale_after_s)
+            if self.store.reset_stale_claims(stale):
+                log.info("released stale extraction claims back to pending")
+            for task in self.store.due_fallback_tasks(now):
+                self._spawn(self._fallback_extract(task), label="fallback-extract")
+            # safety net: closed conversations with unextracted rows and no open task
+            for row in self.store.db.query(
+                "SELECT c.id FROM conversations c"
+                " JOIN (SELECT conversation_id, COUNT(*) AS n FROM utterances"
+                "       WHERE extracted=0 AND is_whisper=0 GROUP BY conversation_id) u"
+                "   ON u.conversation_id = c.id"
+                " WHERE c.closed_at IS NOT NULL AND u.n > 0"
+                "   AND NOT EXISTS (SELECT 1 FROM extraction_tasks t WHERE"
+                "     t.conversation_id = c.id AND t.mode='closing'"
+                "     AND t.status IN ('pending','applying','running_local'))"):
+                self.store.enqueue_extraction_task(
+                    row["id"], "closing", self.prompts.content_hash(),
+                    now + timedelta(seconds=self.cfg.extraction.fallback_delay_s))
+
+    async def _fallback_extract(self, task: dict) -> None:
+        """Phone never completed the task (offline, crashed, gave up): the server runs
+        it with its own LLM key. Data was never at risk — this is the buffer draining."""
+        if not self.store.mark_task_running_local(task["id"]):
+            return  # claimed by the phone in the last microsecond — phone wins
+        if not self.cfg.llm.api_key and "localhost" not in self.cfg.llm.base_url \
+                and "127.0.0.1" not in self.cfg.llm.base_url:
+            log.warning("no server LLM key: extraction task %s deferred to next window",
+                        task["id"])
+            self.store.complete_extraction_task(task["id"], "server",
+                                                error="no server LLM configured")
+            return
+        outcome = await self.extraction.extract(task["conversation_id"],
+                                                mode=task["mode"])
+        self.store.complete_extraction_task(task["id"], "server", error=outcome.error)
+        if outcome.facts_created:
+            log.info("fallback-extracted %s: %d memories", task["conversation_id"],
+                     len(outcome.facts_created))
 
     async def _closing_extract(self, cid: str) -> None:
+        if self.cfg.extraction.delegated:
+            tid = self._schedule_extraction(cid, "closing")
+            log.info("conversation %s closed → extraction task %s (phone executes)",
+                     cid, tid)
+            return
         outcome = await self.extraction.extract(cid, mode="closing")
         if outcome.facts_created:
             log.info("closed+extracted %s: %d memories", cid, len(outcome.facts_created))
