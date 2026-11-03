@@ -527,3 +527,69 @@ final class VocabularyHistoryPipelineTests: XCTestCase {
         await pipe.stop()
     }
 }
+
+final class SpeechGateTests: XCTestCase {
+    private let t0 = Date(timeIntervalSince1970: 1_800_000_000)
+    private func voice(_ n: Int) -> [[Float]] {
+        Array(repeating: (0..<1_600).map { ($0 / 2) % 2 == 0 ? Float(0.05) : -0.05 },
+              count: n)                                   // 0.1 s frames @16 kHz
+    }
+    private func quiet(_ n: Int) -> [[Float]] {
+        Array(repeating: [Float](repeating: 0, count: 1_600), count: n)
+    }
+    private func run(_ gate: inout SpeechGate, _ frames: [[Float]], from: Date)
+        -> [GateEvent] {
+        var out: [GateEvent] = []
+        for (i, f) in frames.enumerated() {
+            out.append(contentsOf: gate.ingest(f, at: from.addingTimeInterval(
+                Double(i) * 0.1)))
+        }
+        return out
+    }
+
+    func testEndpointingHangoverAndShortCoughDrop() {
+        var gate = SpeechGate()
+        // cough: 0.2 s then silence → nothing finalizes (min utterance)
+        var events = run(&gate, quiet(2) + voice(2) + quiet(20), from: t0)
+        XCTAssertFalse(events.contains { if case .utteranceEnd = $0 { return true }
+                                         return false })
+
+        // speech, 0.3 s pause (kept inside utterance), more speech, long silence
+        gate.reset()
+        events = run(&gate, voice(10) + quiet(3) + voice(5) + quiet(10), from: t0)
+        let ends = events.compactMap { e -> (Date, Date)? in
+            if case .utteranceEnd(let s, let e, _) = e { return (s, e) }
+            return nil
+        }
+        XCTAssertEqual(ends.count, 1, "mid-pause must NOT endpoint")
+        XCTAssertEqual(ends[0].0.timeIntervalSince(t0), 0, accuracy: 0.05)
+        XCTAssertEqual(ends[0].1.timeIntervalSince(t0), 1.8, accuracy: 0.11,
+                       "end = where silence began, not where endpoint fired")
+    }
+
+    func testMaxUtteranceCapAndFlush() {
+        var gate = SpeechGate()
+        let events = run(&gate, voice(320), from: t0)   // 32 s nonstop
+        let ends = events.compactMap { e -> Date? in
+            if case .utteranceEnd(_, let e, _) = e { return e }
+            return nil
+        }
+        XCTAssertEqual(ends.count, 1, "ASR window cap force-ends long speech")
+        XCTAssertEqual(ends[0].timeIntervalSince(t0), 30, accuracy: 0.15)
+
+        gate.reset()
+        _ = run(&gate, voice(10), from: t0)
+        let flushed = gate.flush(at: t0.addingTimeInterval(1.0))
+        if case .utteranceEnd(let s, let e, _) = flushed.first! {
+            XCTAssertEqual(s, t0)
+            XCTAssertEqual(e.timeIntervalSince(t0), 1.0, accuracy: 0.001)
+        } else { XCTFail("flush must finalize the in-flight utterance") }
+    }
+
+    func testSilenceEventsForQuietWindowTimer() {
+        var gate = SpeechGate()
+        let events = run(&gate, quiet(5), from: t0)
+        let silences = events.filter { if case .silence = $0 { return true }; return false }
+        XCTAssertEqual(silences.count, 5, "server silence-window timer needs client beats")
+    }
+}
