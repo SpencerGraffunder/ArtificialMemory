@@ -1,10 +1,14 @@
 #!/bin/sh
 # ArtificialMemory — Unraid bring-up. Paste-friendly; run FROM THE UNRAID TERMINAL
-# (or ssh root@tower). Idempotent: re-run after any update.
+# (or ssh root@<tower>). Idempotent: re-run after any update.
 #
-# Usage (private repo — needs a fine-grained PAT with Contents:Read on
-# SpencerGraffunder/ArtificialMemory, OR pre-placed source, see unraid.md):
+# Private repo → needs a fine-grained PAT with Contents:Read:
 #   PAT=github_pat_xxx sh unraid-up.sh
+#
+# Reuse a SearxNG you already run (recommended if you have one) instead of the
+# bundled container — give its URL from a container's point of view:
+#   SEARCH_URL=http://192.168.4.200:8810 PAT=... sh unraid-up.sh
+# With no SEARCH_URL it starts the bundled SearxNG (self-contained first run).
 set -eu
 
 APP=/mnt/user/appdata/artmem
@@ -30,11 +34,15 @@ if [ ! -f .env ]; then
     echo "──────────────────────────────────────────────────────────"
 fi
 
-# If a SearxNG container already exists on this box (owner had one before), keep
-# it and skip the bundled one:
-#   ARTMEM_SEARCH__SEARXNG_URL=http://<that-container>:8080  (same compose net)
-# The bundled SearxNG is the default — set up, keyed, no config needed.
-docker compose --env-file .env up -d --build
+# Reuse an existing SearxNG when told to; otherwise run the bundled one.
+if [ -n "${SEARCH_URL:-}" ]; then
+    grep -q '^SEARCH_URL=' .env && sed -i "s|^SEARCH_URL=.*|SEARCH_URL=$SEARCH_URL|" .env \
+                                 || echo "SEARCH_URL=$SEARCH_URL" >> .env
+    echo "using existing SearxNG at $SEARCH_URL"
+    docker compose up -d --build
+else
+    docker compose --profile bundled-search up -d --build
+fi
 
 sleep 5
 code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8378/v1/health \

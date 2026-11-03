@@ -28,6 +28,21 @@ jobs:
         working-directory: server
         run: .venv/bin/python -m pytest tests/ -q
 
+      # Editable installs read schema.sql from the source tree, so pytest can't
+      # catch a data file that `pip install .` (Docker) would drop. Build the real
+      # wheel and assert the runtime assets are inside it.
+      - name: Wheel packaging smoke (schema.sql shipped)
+        run: |
+          /opt/homebrew/bin/python3.12 -m pip wheel server --no-deps -w /tmp/artmem-wheel -q
+          /opt/homebrew/bin/python3.12 - <<'PY'
+          import glob, zipfile
+          w = max(glob.glob("/tmp/artmem-wheel/*.whl"))
+          names = zipfile.ZipFile(w).namelist()
+          assert any(n.endswith("artmem_server/db/schema.sql") for n in names), \
+              f"schema.sql missing from wheel {w}: {names}"
+          print("packaging OK:", w)
+          PY
+
       - name: Eval replay (precision/recall + cards/hour budget)
         run: server/.venv/bin/python eval/replay/run.py
 

@@ -40,7 +40,7 @@ server/         FastAPI app, prompts/, tests/
 eval/           replay harness, fixtures, scoring-parity exporter (feeds Swift CI)
 docs/           DECISIONS.md, API.md (generated from OpenAPI)
 .github/        self-hosted CI (this Mac is the build machine)
-docker-compose.yml   artmem + searxng
+docker-compose.yml   artmem (+ optional bundled searxng via --profile bundled-search)
 deploy/         unraid-up.sh (one-paste bring-up), searxng config
 ```
 
@@ -56,6 +56,21 @@ PAT=github_pat_xxx sh -c 'curl -s https://raw.githubusercontent.com/SpencerGraff
 It clones to `/mnt/user/appdata/artmem`, generates `ARTMEM_TOKEN` +
 `SEARXNG_SECRET` into `.env`, builds, and starts the stack. The printed token goes into
 the iPhone app's Settings. Re-run any time to update.
+
+**Already run a SearxNG?** Reuse it instead of the bundled container — pass its URL and
+the bundled one is skipped:
+
+```sh
+SEARCH_URL=http://192.168.4.200:8810 PAT=github_pat_xxx \
+  sh -c 'curl -s https://raw.githubusercontent.com/SpencerGraffunder/ArtificialMemory/main/deploy/unraid-up.sh | PAT=$PAT SEARCH_URL=$SEARCH_URL sh'
+```
+
+**Add a real LLM key** (extraction + embeddings need it — OpenRouter is reachable but
+unauthenticated returns 401 for embeddings): append `LLM_API_KEY=sk-or-…` to
+`/mnt/user/appdata/artmem/src/.env` and `docker compose up -d` again.
+
+> Status: running live on the tower at `http://192.168.4.200:8378` (healthy, restart
+> `unless-stopped`, reusing the existing SearXNG on `:8810`, `sqlite-vec` loaded).
 
 Generic Docker: `cp .env.example .env` (set `ARTMEM_TOKEN`), `docker compose up -d`.
 

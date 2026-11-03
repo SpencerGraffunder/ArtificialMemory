@@ -175,10 +175,51 @@ request. Storage on the phone. Use the existing SearxNG."*
   server is the safety net for the phone).
 - **Server keeps**: durable ingest buffer (outbox drains into it), extraction queue +
   fallback timing, dedup/supersession/entity graph, cross-device cards, SearxNG
-  web search (existing Unraid instance; `SEARCH_PROVIDER=searxng` + `SEARXNG_BASE_URL`,
-  default `http://searxng:8080` on the compose network).
+  web search (existing Unraid instance; `ARTMEM_SEARCH__BACKEND=searxng` +
+  `ARTMEM_SEARCH__SEARXNG_URL`, set via compose `SEARCH_URL`, default
+  `http://searxng:8080` on the compose network).
 - Tradeoffs accepted: phone LLM endpoints are user-configured (local vLLM or hosted
   key in Settings); extraction latency on cellular depends on the chosen endpoint —
   the server fallback deadline covers silence; parity tests re-export is a manual
   step (fixture file freshness is asserted by the test's case count + CI regeneration
   note in the file header).
+
+# Rebrand → ArtificialMemory + first real Docker deploy (2026-11-03)
+
+## Rename: Ambient Memory → ArtificialMemory (owner directive)
+- Product name is literally **ArtificialMemory** (app label, nav title, API title, mic
+  prompt). Short technical stem is `artmem` / `ArtMem` / `ARTMEM_` everywhere:
+  Python package `artmem_server`, Swift package/target `ArtMemCore`, app target `ArtMem`,
+  bundle id `dev.graffunder.artmem`, env prefix `ARTMEM_*`, DB `artmem.sqlite3`, compose
+  service `artmem` / volume `artmem-data`, CI runner labels `mac,artmem`.
+- GitHub repo renamed `ambient-memory → ArtificialMemory` (old URL redirects); CI runner
+  re-registered as `mac-artmem` at `~/actions-runner-artmem` (old runner deleted).
+- Every "ambient" in the tree was the product name (no false positives), so the rename
+  was a safe ordered substitution; scoring parity fixtures stayed byte-identical.
+
+## Latent bugs the first `docker compose up` exposed (both masked until now)
+- **schema.sql not in the wheel.** Editable installs read it from the source tree and CI
+  clones a world-readable git checkout, so neither `pytest` nor CI caught it. `pip
+  install .` (Docker) dropped it → `migrate()` FileNotFoundError. Fix: made `db/` a
+  regular package (`db/__init__.py`, like core/llm/pipeline/api) +
+  `[tool.setuptools.package-data] artmem_server.db = ["schema.sql"]`. CI now builds the
+  real wheel and asserts the file is inside (packaging smoke step in server.yml).
+- **Runtime assets not world-readable.** `COPY`d `prompts/` + `healthcheck.py` kept the
+  host's `0700` bits and the non-root `artmem` user hit PermissionError loading prompts.
+  `COPY --chmod=644` was ignored on a cached COPY layer, so added a `RUN chmod -R a+rX`
+  before the `USER` drop. (This Mac's harness enforces owner-only modes and `chmod` is a
+  no-op here, so the image-side `RUN chmod` is the authoritative fix, not host bits.)
+- **`Card` had no `public init`** — the local-first query path constructs a `Card` from
+  the app module; it only ever "built" from stale Xcode objects. Added a public init
+  (Codable still synthesizes `init(from:)`).
+
+## Unraid topology (verified live, restart `unless-stopped`)
+- Source at `/mnt/user/appdata/artmem/src` (rsynced from the Mac; a PAT clone via
+  `deploy/unraid-up.sh` works too). Image built on-box (linux/amd64).
+- **Reuses the owner's existing SearXNG** (`bridge`, host port **8810**, `format=json`
+  already enabled) via `SEARCH_URL=http://192.168.4.200:8810`; the bundled SearxNG is
+  now behind compose profile `bundled-search` so it never collides (host `:8888` is
+  taken on this box). `artmem` published on host `:8378`.
+- `/v1/health` → 200 auth / 401 unauth; `sqlite-vec` loaded (`vec=True`); 9 prompts.
+- Needs an `LLM_API_KEY` (OpenRouter) in `.env` before extraction/embeddings work —
+  endpoint reachable but embeddings return 401 unauthenticated.
