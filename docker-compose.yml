@@ -18,6 +18,9 @@ services:
       ARTMEM_LLM__BASE_URL: ${ARTMEM_LLM__BASE_URL:-https://openrouter.ai/api/v1}
       ARTMEM_LLM__MODEL_FAST: ${ARTMEM_LLM__MODEL_FAST:-openai/gpt-4o-mini}
       ARTMEM_LLM__MODEL_DEEP: ${ARTMEM_LLM__MODEL_DEEP:-openai/gpt-4o}
+      # local/reasoning models can take tens of seconds per call; 30 s default
+      # starved them. Generous ceiling so slow llama.cpp extraction doesn't time out.
+      ARTMEM_LLM__TIMEOUT_S: ${ARTMEM_LLM__TIMEOUT_S:-120}
       ARTMEM_LLM__EMBEDDING_BASE_URL: ${ARTMEM_LLM__EMBEDDING_BASE_URL:-}
       ARTMEM_LLM__EMBEDDING_MODEL: ${ARTMEM_LLM__EMBEDDING_MODEL:-}
       # web search: reuse an existing SearxNG (SEARCH_URL) or run the bundled one
