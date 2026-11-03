@@ -33,7 +33,7 @@ jobs:
       # wheel and assert the runtime assets are inside it.
       - name: Wheel packaging smoke (schema.sql shipped)
         run: |
-          /opt/homebrew/bin/python3.12 -m pip wheel server --no-deps -w /tmp/artmem-wheel -q
+          /opt/homebrew/bin/python3.12 -m pip wheel ./server --no-deps -w /tmp/artmem-wheel -q
           /opt/homebrew/bin/python3.12 - <<'PY'
           import glob, zipfile
           w = max(glob.glob("/tmp/artmem-wheel/*.whl"))
