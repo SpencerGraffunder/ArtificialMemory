@@ -33,6 +33,11 @@ targets:
           ArtificialMemory listens continuously so it can transcribe, remember, and
           surface your conversations. Audio never leaves your devices.
         ITSAppUsesNonExemptEncryption: false
+        # The companion server is plain-HTTP on the home LAN / Tailscale by
+        # design (single-user, private network). Without this, ATS blocks
+        # every request on a real device and the app looks broken.
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
     settings:

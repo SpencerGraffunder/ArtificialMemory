@@ -1,0 +1,109 @@
+# iOS DEVICE .ipa pipeline — mirrors pianobar-ios / key-decoder.
+# (The sibling ios-build.yml builds a SIMULATOR zip for local dev; this one
+# produces the sideloadable unsigned device .ipa and publishes it like the
+# other apps: rolling 'ios-latest' GitHub Release + hub-site download link +
+# iCloud Drive/IPAs mirror on Spec's Mac runner.)
+#
+# Runs on Spec's Mac (runner mac-artmem). Kept test-free on purpose: ArtMemCore
+# tests and the simulator gate live in ios-build.yml, so an ios/** push here
+# costs one compile + assemble, not a second full test cycle on a laptop.
+name: iOS Device IPA
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ios/**'
+      - '.github/workflows/ios-ipa.yml'
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  device-ipa:
+    name: Build device .ipa + publish
+    runs-on: [self-hosted, macOS, ARM64, artmem]
+    env:
+      # LaunchAgent runners lack the interactive PATH (Homebrew + Xcode tools).
+      PATH: /opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Generate Xcode project
+        working-directory: ios
+        run: xcodegen generate --spec project.yml
+
+      - name: Build Release for iOS device
+        run: |
+          xcodebuild -project ios/ArtMem.xcodeproj -scheme ArtMem \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath dd-device \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="-" \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            build
+
+      - name: Assemble .ipa
+        run: |
+          APP=$(find dd-device/Build/Products/Release-iphoneos -maxdepth 1 -name '*.app' | head -1)
+          echo "Bundling $APP"
+          mkdir -p ipa-staging/Payload
+          cp -R "$APP" ipa-staging/Payload/
+          # Stamp a build-increasing version (lesson from pianobar): project.yml
+          # pins 0.1/1 for local dev, so every rolling build would report "0.1"
+          # and look stale in installer UIs. 0.1.<run> always increases.
+          if [ "$GITHUB_REF_NAME" != "main" ] && [ -n "$GITHUB_REF_NAME" ] && [ "${GITHUB_REF_NAME#v}" != "$GITHUB_REF_NAME" ]; then
+            BUILD_VERSION="${GITHUB_REF_NAME#v}"
+          else
+            BUILD_VERSION="0.1.$GITHUB_RUN_NUMBER"
+          fi
+          /usr/libexec/PlistBuddy \
+            -c "Set :CFBundleShortVersionString $BUILD_VERSION" \
+            -c "Set :CFBundleVersion $GITHUB_RUN_NUMBER" \
+            "ipa-staging/Payload/$(basename "$APP")/Info.plist"
+          echo "Version stamped: $BUILD_VERSION (build $GITHUB_RUN_NUMBER)"
+          cd ipa-staging
+          zip -qry ../ArtificialMemory.ipa Payload
+          cd ..
+          ls -lh ArtificialMemory.ipa
+
+      - name: Upload .ipa as run artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArtificialMemory.ipa
+          path: ArtificialMemory.ipa
+          if-no-files-found: error
+
+      - name: Publish .ipa as GitHub Release (bare file, no zip)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG=ios-latest
+          if [ "$GITHUB_REF_NAME" != "main" ] && [ -n "$GITHUB_REF_NAME" ] && [ "${GITHUB_REF_NAME#v}" != "$GITHUB_REF_NAME" ]; then
+            TAG="$GITHUB_REF_NAME"
+          fi
+          # Re-create, never --clobber: a clobbered release freezes its
+          # published date (the hub card would show the first-ever build date
+          # forever). Delete keeps the tag; the fresh release points at this
+          # exact commit. Runner jobs serialize, so pushes can't race here.
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release delete "$TAG" --yes
+          fi
+          gh release create "$TAG" ArtificialMemory.ipa \
+            --target "$GITHUB_SHA" \
+            --title "iOS build ($TAG)" \
+            --notes "Unsigned .ipa from CI. Re-sign with Sideloadly / AltStore / an ad-hoc profile to install. The app reaches your self-hosted server over plain HTTP on your LAN/Tailscale — set the endpoint in Settings."
+          gh release view "$TAG"
+
+      - name: Mirror .ipa to iCloud Drive
+        continue-on-error: true
+        run: |
+          # This runner IS Spec's Mac, so a local copy into iCloud Drive IS
+          # the upload (bird syncs it; no cron, no tokens). continue-on-error:
+          # a sync hiccup must never redden a build.
+          DEST="$HOME/Library/Mobile Documents/com~apple~CloudDocs/IPAs"
+          mkdir -p "$DEST"
+          cp -f ArtificialMemory.ipa "$DEST/ArtificialMemory.ipa"
+          ls -lh "$DEST"

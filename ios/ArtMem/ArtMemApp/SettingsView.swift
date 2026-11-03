@@ -35,7 +35,7 @@ struct SettingsView: View {
                         }
                     }
                     HStack {
-                        TextField("http://homebox.local:8378", text: $newEndpoint)
+                        TextField("http://server.local:8378", text: $newEndpoint)
                             .textInputAutocapitalization(.never)
                             .font(.body.monospaced())
                         Button {
@@ -81,7 +81,7 @@ struct SettingsView: View {
                     Text("The phone executes the server-rendered extraction prompts itself; the server keeps the durable queue and takes over only if the phone never reports in. Works offline — results wait in the local buffer.")
                         .font(.caption).foregroundStyle(.secondary)
                     Group {
-                        TextField("deep base URL (openai-compatible, e.g. http://homebox.local:8000/v1)", text: $deepURL)
+                        TextField("deep base URL (openai-compatible, e.g. http://llm.local:8000/v1)", text: $deepURL)
                             .textInputAutocapitalization(.never).font(.body.monospaced())
                         TextField("deep model", text: $deepModel)
                             .textInputAutocapitalization(.never).font(.body.monospaced())
