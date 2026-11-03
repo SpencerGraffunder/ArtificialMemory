@@ -1,0 +1,1287 @@
+{
+ "components": {
+  "schemas": {
+   "FeedbackMessage": {
+    "properties": {
+     "at": {
+      "format": "date-time",
+      "title": "At",
+      "type": "string"
+     },
+     "card_id": {
+      "title": "Card Id",
+      "type": "string"
+     },
+     "kind": {
+      "enum": [
+       "dismiss",
+       "thumb_up",
+       "thumb_down",
+       "pin",
+       "unpin",
+       "expand"
+      ],
+      "title": "Kind",
+      "type": "string"
+     }
+    },
+    "required": [
+     "card_id",
+     "kind"
+    ],
+    "title": "FeedbackMessage",
+    "type": "object"
+   },
+   "HTTPValidationError": {
+    "properties": {
+     "detail": {
+      "items": {
+       "$ref": "#/components/schemas/ValidationError"
+      },
+      "title": "Detail",
+      "type": "array"
+     }
+    },
+    "title": "HTTPValidationError",
+    "type": "object"
+   },
+   "IngestBatchRequest": {
+    "properties": {
+     "utterances": {
+      "items": {
+       "$ref": "#/components/schemas/UtteranceEvent"
+      },
+      "title": "Utterances",
+      "type": "array"
+     }
+    },
+    "title": "IngestBatchRequest",
+    "type": "object"
+   },
+   "IngestBatchResponse": {
+    "properties": {
+     "accepted_ids": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Accepted Ids",
+      "type": "array"
+     },
+     "duplicate_ids": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Duplicate Ids",
+      "type": "array"
+     },
+     "server_time": {
+      "format": "date-time",
+      "title": "Server Time",
+      "type": "string"
+     }
+    },
+    "required": [
+     "accepted_ids",
+     "duplicate_ids",
+     "server_time"
+    ],
+    "title": "IngestBatchResponse",
+    "type": "object"
+   },
+   "QueryRequest": {
+    "properties": {
+     "q": {
+      "title": "Q",
+      "type": "string"
+     },
+     "speaker_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Speaker Id"
+     },
+     "synthesize": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Synthesize"
+     }
+    },
+    "required": [
+     "q"
+    ],
+    "title": "QueryRequest",
+    "type": "object"
+   },
+   "SpeakerMerge": {
+    "properties": {
+     "from_speaker_id": {
+      "title": "From Speaker Id",
+      "type": "string"
+     },
+     "into_speaker_id": {
+      "title": "Into Speaker Id",
+      "type": "string"
+     }
+    },
+    "required": [
+     "from_speaker_id",
+     "into_speaker_id"
+    ],
+    "title": "SpeakerMerge",
+    "type": "object"
+   },
+   "SpeakerPatch": {
+    "properties": {
+     "is_owner": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Is Owner"
+     },
+     "name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     }
+    },
+    "title": "SpeakerPatch",
+    "type": "object"
+   },
+   "UtteranceEvent": {
+    "description": "Spec \u00a73.3 \u2014 what the phone emits. Idempotent by `id`.",
+    "properties": {
+     "asr_confidence": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Asr Confidence"
+     },
+     "conversation_hint": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Conversation Hint"
+     },
+     "device": {
+      "default": "iphone",
+      "title": "Device",
+      "type": "string"
+     },
+     "end_ts": {
+      "anyOf": [
+       {
+        "format": "date-time",
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "End Ts"
+     },
+     "id": {
+      "title": "Id",
+      "type": "string"
+     },
+     "is_whisper": {
+      "default": false,
+      "title": "Is Whisper",
+      "type": "boolean"
+     },
+     "location": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/UtteranceLocation"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "revision": {
+      "default": 0,
+      "title": "Revision",
+      "type": "integer"
+     },
+     "speaker_confidence": {
+      "default": 0.0,
+      "title": "Speaker Confidence",
+      "type": "number"
+     },
+     "speaker_id": {
+      "title": "Speaker Id",
+      "type": "string"
+     },
+     "speaker_label": {
+      "title": "Speaker Label",
+      "type": "string"
+     },
+     "start_ts": {
+      "format": "date-time",
+      "title": "Start Ts",
+      "type": "string"
+     },
+     "text": {
+      "title": "Text",
+      "type": "string"
+     }
+    },
+    "required": [
+     "id",
+     "start_ts",
+     "speaker_id",
+     "speaker_label",
+     "text"
+    ],
+    "title": "UtteranceEvent",
+    "type": "object"
+   },
+   "UtteranceLocation": {
+    "properties": {
+     "accuracy_m": {
+      "default": 0.0,
+      "title": "Accuracy M",
+      "type": "number"
+     },
+     "lat": {
+      "title": "Lat",
+      "type": "number"
+     },
+     "lon": {
+      "title": "Lon",
+      "type": "number"
+     }
+    },
+    "required": [
+     "lat",
+     "lon"
+    ],
+    "title": "UtteranceLocation",
+    "type": "object"
+   },
+   "ValidationError": {
+    "properties": {
+     "ctx": {
+      "title": "Context",
+      "type": "object"
+     },
+     "input": {
+      "title": "Input"
+     },
+     "loc": {
+      "items": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "integer"
+        }
+       ]
+      },
+      "title": "Location",
+      "type": "array"
+     },
+     "msg": {
+      "title": "Message",
+      "type": "string"
+     },
+     "type": {
+      "title": "Error Type",
+      "type": "string"
+     }
+    },
+    "required": [
+     "loc",
+     "msg",
+     "type"
+    ],
+    "title": "ValidationError",
+    "type": "object"
+   }
+  }
+ },
+ "info": {
+  "description": "Self-hosted ambient memory: ingest, extraction, live relevance, clarifications. Auth: `Authorization: Bearer <token>` on every route.",
+  "title": "Ambient Memory",
+  "version": "0.1.0"
+ },
+ "openapi": "3.1.0",
+ "paths": {
+  "/v1/clarifications": {
+   "get": {
+    "operationId": "clarifications_v1_clarifications_get",
+    "parameters": [
+     {
+      "in": "query",
+      "name": "status",
+      "required": false,
+      "schema": {
+       "default": "open",
+       "title": "Status",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "title": "Response Clarifications V1 Clarifications Get",
+         "type": "object"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Clarifications",
+    "tags": [
+     "clarifications"
+    ]
+   }
+  },
+  "/v1/clarifications/digest": {
+   "get": {
+    "operationId": "clarifications_digest_v1_clarifications_digest_get",
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "title": "Response Clarifications Digest V1 Clarifications Digest Get",
+         "type": "object"
+        }
+       }
+      },
+      "description": "Successful Response"
+     }
+    },
+    "summary": "Clarifications Digest",
+    "tags": [
+     "clarifications"
+    ]
+   }
+  },
+  "/v1/clarifications/{clarification_id}/answer": {
+   "post": {
+    "operationId": "answer_clarification_v1_clarifications__clarification_id__answer_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "clarification_id",
+      "required": true,
+      "schema": {
+       "title": "Clarification Id",
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "additionalProperties": true,
+        "title": "Body",
+        "type": "object"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "title": "Response Answer Clarification V1 Clarifications  Clarification Id  Answer Post",
+         "type": "object"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Answer Clarification",
+    "tags": [
+     "clarifications"
+    ]
+   }
+  },
+  "/v1/conversations": {
+   "get": {
+    "operationId": "conversations_v1_conversations_get",
+    "parameters": [
+     {
+      "in": "query",
+      "name": "limit",
+      "required": false,
+      "schema": {
+       "default": 50,
+       "title": "Limit",
+       "type": "integer"
+      }
+     },
+     {
+      "in": "query",
+      "name": "offset",
+      "required": false,
+      "schema": {
+       "default": 0,
+       "title": "Offset",
+       "type": "integer"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "title": "Response Conversations V1 Conversations Get",
+         "type": "object"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Conversations",
+    "tags": [
+     "conversations"
+    ]
+   }
+  },
+  "/v1/conversations/{conversation_id}": {
+   "get": {
+    "operationId": "conversation_v1_conversations__conversation_id__get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "conversation_id",
+      "required": true,
+      "schema": {
+       "title": "Conversation Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "title": "Response Conversation V1 Conversations  Conversation Id  Get",
+         "type": "object"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Conversation",
+    "tags": [
+     "conversations"
+    ]
+   }
+  },
+  "/v1/conversations/{conversation_id}/end": {
+   "post": {
+    "operationId": "end_conversation_v1_conversations__conversation_id__end_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "conversation_id",
+      "required": true,
+      "schema": {
+       "title": "Conversation Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "title": "Response End Conversation V1 Conversations  Conversation Id  End Post",
+         "type": "object"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "End Conversation",
+    "tags": [
+     "conversations"
+    ]
+   }
+  },
+  "/v1/export": {
+   "get": {
+    "operationId": "export_v1_export_get",
+    "parameters": [
+     {
+      "in": "query",
+      "name": "fmt",
+      "required": false,
+      "schema": {
+       "default": "json",
+       "title": "Fmt",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "title": "Response Export V1 Export Get"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Export",
+    "tags": [
+     "meta"
+    ]
+   }
+  },
+  "/v1/feedback": {
+   "post": {
+    "operationId": "feedback_v1_feedback_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/FeedbackMessage"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "title": "Response Feedback V1 Feedback Post",
+         "type": "object"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Feedback",
+    "tags": [
+     "live"
+    ]
+   }
+  },
+  "/v1/health": {
+   "get": {
+    "operationId": "health_v1_health_get",
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "title": "Response Health V1 Health Get",
+         "type": "object"
+        }
+       }
+      },
+      "description": "Successful Response"
+     }
+    },
+    "summary": "Health",
+    "tags": [
+     "meta"
+    ]
+   }
+  },
+  "/v1/ingest/batch": {
+   "post": {
+    "operationId": "ingest_batch_v1_ingest_batch_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/IngestBatchRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/IngestBatchResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Ingest Batch",
+    "tags": [
+     "ingest"
+    ]
+   }
+  },
+  "/v1/memories": {
+   "get": {
+    "operationId": "memories_v1_memories_get",
+    "parameters": [
+     {
+      "in": "query",
+      "name": "q",
+      "required": false,
+      "schema": {
+       "default": "",
+       "title": "Q",
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "entity",
+      "required": false,
+      "schema": {
+       "default": "",
+       "title": "Entity",
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "speaker",
+      "required": false,
+      "schema": {
+       "default": "",
+       "title": "Speaker",
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "from",
+      "required": false,
+      "schema": {
+       "default": "",
+       "title": "From",
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "to",
+      "required": false,
+      "schema": {
+       "default": "",
+       "title": "To",
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "include_inactive",
+      "required": false,
+      "schema": {
+       "default": false,
+       "title": "Include Inactive",
+       "type": "boolean"
+      }
+     },
+     {
+      "in": "query",
+      "name": "limit",
+      "required": false,
+      "schema": {
+       "default": 50,
+       "title": "Limit",
+       "type": "integer"
+      }
+     },
+     {
+      "in": "query",
+      "name": "offset",
+      "required": false,
+      "schema": {
+       "default": 0,
+       "title": "Offset",
+       "type": "integer"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "title": "Response Memories V1 Memories Get",
+         "type": "object"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Memories",
+    "tags": [
+     "memories"
+    ]
+   }
+  },
+  "/v1/memories/{memory_id}": {
+   "delete": {
+    "operationId": "delete_memory_v1_memories__memory_id__delete",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "memory_id",
+      "required": true,
+      "schema": {
+       "title": "Memory Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "title": "Response Delete Memory V1 Memories  Memory Id  Delete",
+         "type": "object"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Delete Memory",
+    "tags": [
+     "memories"
+    ]
+   },
+   "get": {
+    "operationId": "get_memory_v1_memories__memory_id__get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "memory_id",
+      "required": true,
+      "schema": {
+       "title": "Memory Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "title": "Response Get Memory V1 Memories  Memory Id  Get",
+         "type": "object"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Get Memory",
+    "tags": [
+     "memories"
+    ]
+   },
+   "patch": {
+    "operationId": "patch_memory_v1_memories__memory_id__patch",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "memory_id",
+      "required": true,
+      "schema": {
+       "title": "Memory Id",
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "additionalProperties": true,
+        "title": "Body",
+        "type": "object"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "title": "Response Patch Memory V1 Memories  Memory Id  Patch",
+         "type": "object"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Patch Memory",
+    "tags": [
+     "memories"
+    ]
+   }
+  },
+  "/v1/query": {
+   "post": {
+    "operationId": "query_v1_query_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/QueryRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "title": "Response Query V1 Query Post",
+         "type": "object"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Query",
+    "tags": [
+     "query"
+    ]
+   }
+  },
+  "/v1/speakers": {
+   "get": {
+    "operationId": "speakers_v1_speakers_get",
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "title": "Response Speakers V1 Speakers Get",
+         "type": "object"
+        }
+       }
+      },
+      "description": "Successful Response"
+     }
+    },
+    "summary": "Speakers",
+    "tags": [
+     "speakers"
+    ]
+   }
+  },
+  "/v1/speakers/merge": {
+   "post": {
+    "operationId": "merge_speakers_v1_speakers_merge_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SpeakerMerge"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "title": "Response Merge Speakers V1 Speakers Merge Post",
+         "type": "object"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Merge Speakers",
+    "tags": [
+     "speakers"
+    ]
+   }
+  },
+  "/v1/speakers/{speaker_id}": {
+   "delete": {
+    "operationId": "delete_speaker_v1_speakers__speaker_id__delete",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "speaker_id",
+      "required": true,
+      "schema": {
+       "title": "Speaker Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "title": "Response Delete Speaker V1 Speakers  Speaker Id  Delete",
+         "type": "object"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Delete Speaker",
+    "tags": [
+     "speakers"
+    ]
+   },
+   "patch": {
+    "operationId": "patch_speaker_v1_speakers__speaker_id__patch",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "speaker_id",
+      "required": true,
+      "schema": {
+       "title": "Speaker Id",
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SpeakerPatch"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "title": "Response Patch Speaker V1 Speakers  Speaker Id  Patch",
+         "type": "object"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Patch Speaker",
+    "tags": [
+     "speakers"
+    ]
+   }
+  },
+  "/v1/vocabulary": {
+   "get": {
+    "operationId": "vocabulary_v1_vocabulary_get",
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "title": "Response Vocabulary V1 Vocabulary Get",
+         "type": "object"
+        }
+       }
+      },
+      "description": "Successful Response"
+     }
+    },
+    "summary": "Vocabulary",
+    "tags": [
+     "vocabulary"
+    ]
+   },
+   "post": {
+    "operationId": "add_vocabulary_v1_vocabulary_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "additionalProperties": true,
+        "title": "Body",
+        "type": "object"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "title": "Response Add Vocabulary V1 Vocabulary Post",
+         "type": "object"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Add Vocabulary",
+    "tags": [
+     "vocabulary"
+    ]
+   }
+  }
+ }
+}

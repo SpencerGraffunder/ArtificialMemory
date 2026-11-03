@@ -1,0 +1,16 @@
+# Minimal SearxNG settings for the Ambient stack (secret comes from SEARXNG_SECRET env).
+use_default_settings: true
+
+server:
+  secret_key: "set-by-SEARXNG_SECRET-env"
+  limiter: false
+  image_proxy: false
+
+search:
+  safe_search: 0
+  formats:
+    - json          # the ambient server consumes the JSON API
+    - html
+
+ui:
+  static_use_hash: true

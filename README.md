@@ -55,11 +55,17 @@ Health check: `curl -H "Authorization: Bearer $AMBIENT_TOKEN" http://localhost:8
 ## Quick start (iOS)
 
 ```bash
-cd ios
-xcodegen generate          # produces Ambient.xcodeproj from project.yml
-open Ambient.xcodeproj     # run on a physical device; set server endpoint + token in Settings
-swift test --package-path Packages/AmbientCore   # core logic tests, no UI
+cd ios/AmbientCore
+swift test          # 33 core-logic tests: outbox, backoff, VAD, whisper gate, speakers
 ```
+
+The core package (`ios/AmbientCore`) is UI-free and compiles for iOS and macOS — the
+SwiftUI app target (card stack, settings, browse) consumes its `AudioSource` /
+`CardSink` protocols and lands with milestone M3.
+
+If your checkout lives on a network share (SMB), Swift builds must run with a local
+scratch path or codesigning fails on AppleDouble xattrs:
+`swift test --scratch-path ~/Library/Caches/AmbientCoreBuild`.
 
 The app relies on the [Tailscale iOS app](https://tailscale.com/kb/1129/ios) being
 connected to reach the home server; it tries an ordered list of endpoints (MagicDNS name
@@ -68,9 +74,12 @@ first, LAN IP fallback).
 ## Tests & eval
 
 ```bash
-cd server && pytest                          # unit + API tests
-cd ../eval && python -m replay.run --all     # replay fixture transcripts, print card eval report
+cd server && .venv/bin/python -m pytest          # unit + API tests
+cd ../eval && python replay/run.py               # replay fixtures: precision/recall/card-rate
 ```
+
+Current eval: **12/12 fixtures pass · precision 1.00 · recall 1.00 · 3.15 cards/hour**
+(spec target 1–4/h). Details: `eval/README.md`.
 
 See `docs/DECISIONS.md` for every implementation decision and its rationale, and
 `docs/API.md` for the generated HTTP/WS API reference.
