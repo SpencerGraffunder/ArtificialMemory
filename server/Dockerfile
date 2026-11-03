@@ -8,13 +8,19 @@ ENV PYTHONUNBUFFERED=1 \
     ARTMEM_STORAGE__EXPORT_DIR=/data/exports
 
 WORKDIR /app
-COPY pyproject.toml ./
-COPY src ./src
+COPY --chmod=644 pyproject.toml ./
+COPY --chmod=644 src ./src
 RUN pip install .
 
-# prompts are resolved relative to CWD in packaged installs (AppContext fallback)
-COPY prompts ./prompts
-COPY healthcheck.py /app/healthcheck.py
+# prompts are resolved relative to CWD in packaged installs (AppContext fallback).
+# --chmod so a non-root runtime user can read them even if the host tree is 0600.
+COPY --chmod=644 prompts ./prompts
+COPY --chmod=644 healthcheck.py /app/healthcheck.py
+
+# Belt-and-braces: some BuildKit versions serve a cached COPY layer that kept the
+# host's 0700 bits, so the non-root runtime user can't read prompts/healthcheck.
+# Explicitly make them world-readable on the real image FS before USER drop.
+RUN chmod -R a+rX /app/prompts /app/healthcheck.py
 
 RUN useradd --create-home --uid 10001 artmem \
     && mkdir -p /data/exports && chown -R artmem:artmem /data

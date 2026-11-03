@@ -28,6 +28,11 @@ dev = [
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+# schema.sql ships inside the wheel (editable installs read it from source;
+# Docker `pip install .` would otherwise drop it → migrate() FileNotFound).
+"artmem_server.db" = ["schema.sql"]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
