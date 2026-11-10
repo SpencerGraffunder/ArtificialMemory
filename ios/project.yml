@@ -22,8 +22,8 @@ targets:
       path: ArtMem/Info.plist
       properties:
         CFBundleDisplayName: ArtificialMemory
-        CFBundleShortVersionString: "0.1"
-        CFBundleVersion: "1"
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         UILaunchScreen: {}
         UIBackgroundModes:
           - audio
@@ -43,6 +43,11 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.graffunder.artmem
+        # CI overrides both with a rolling version (see ios-ipa.yml); these
+        # keep local/xcodegen builds resolving $(...) placeholders.
+        # (key-decoder parity)
+        MARKETING_VERSION: "0.1"
+        CURRENT_PROJECT_VERSION: "1"
         TARGETED_DEVICE_FAMILY: "1"
         CODE_SIGN_STYLE: Automatic
         SWIFT_STRICT_CONCURRENCY: complete

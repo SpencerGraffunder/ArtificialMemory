@@ -2,7 +2,9 @@
 # (The sibling ios-build.yml builds a SIMULATOR zip for local dev; this one
 # produces the sideloadable unsigned device .ipa and publishes it like the
 # other apps: rolling 'ios-latest' GitHub Release + hub-site download link +
-# iCloud Drive/IPAs mirror on Spec's Mac runner.)
+# iCloud Drive/IPAs mirror on Spec's Mac runner. The .ipa carries a build-time
+# version (yy.m.d + run number, key-decoder scheme) in its bundle, its asset
+# name (ArtificialMemory-<yy.m.d>-<run>.ipa) and the release title.)
 #
 # Runs on Spec's Mac (runner mac-artmem). Kept test-free on purpose: ArtMemCore
 # tests and the simulator gate live in ios-build.yml, so an ios/** push here
@@ -39,45 +41,53 @@ jobs:
         working-directory: ios
         run: xcodegen generate --spec project.yml
 
+      - name: Rolling version (date + run number)
+        run: |
+          # Same scheme as key-decoder: yy.m.d + CI run number, and THE SAME
+          # version stamps the bundle (MARKETING_VERSION/CURRENT_PROJECT_VERSION),
+          # the .ipa asset name, and the release title — what you install is
+          # what you see. v* tag pushes carry the tag version instead.
+          if [[ "$GITHUB_REF_NAME" == v* ]]; then
+            echo "APP_VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+          else
+            echo "APP_VERSION=$(date -u +%y.%-m.%-d)" >> "$GITHUB_ENV"
+          fi
+          echo "APP_BUILD=${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+
       - name: Build Release for iOS device
         run: |
           xcodebuild -project ios/ArtMem.xcodeproj -scheme ArtMem \
             -configuration Release \
             -destination 'generic/platform=iOS' \
             -derivedDataPath dd-device \
+            MARKETING_VERSION="$APP_VERSION" CURRENT_PROJECT_VERSION="$APP_BUILD" \
             CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="-" \
             COMPILER_INDEX_STORE_ENABLE=NO \
             build
 
-      - name: Assemble .ipa
+      - name: Assemble .ipa (asset named with the version)
         run: |
+          # One version-stamp mechanism only: the bundle already carries
+          # $APP_VERSION ($APP_BUILD) from the build settings above — never
+          # also PlistBuddy-patch the staged Payload (whichever runs last
+          # silently wins). The .ipa is named with that same version so the
+          # filename, the release, and what LiveContainer shows all agree.
+          ASSET="ArtificialMemory-${APP_VERSION}-${APP_BUILD}.ipa"
+          echo "ASSET=$ASSET" >> "$GITHUB_ENV"
           APP=$(find dd-device/Build/Products/Release-iphoneos -maxdepth 1 -name '*.app' | head -1)
           echo "Bundling $APP"
           mkdir -p ipa-staging/Payload
           cp -R "$APP" ipa-staging/Payload/
-          # Stamp a build-increasing version (lesson from pianobar): project.yml
-          # pins 0.1/1 for local dev, so every rolling build would report "0.1"
-          # and look stale in installer UIs. 0.1.<run> always increases.
-          if [ "$GITHUB_REF_NAME" != "main" ] && [ -n "$GITHUB_REF_NAME" ] && [ "${GITHUB_REF_NAME#v}" != "$GITHUB_REF_NAME" ]; then
-            BUILD_VERSION="${GITHUB_REF_NAME#v}"
-          else
-            BUILD_VERSION="0.1.$GITHUB_RUN_NUMBER"
-          fi
-          /usr/libexec/PlistBuddy \
-            -c "Set :CFBundleShortVersionString $BUILD_VERSION" \
-            -c "Set :CFBundleVersion $GITHUB_RUN_NUMBER" \
-            "ipa-staging/Payload/$(basename "$APP")/Info.plist"
-          echo "Version stamped: $BUILD_VERSION (build $GITHUB_RUN_NUMBER)"
           cd ipa-staging
-          zip -qry ../ArtificialMemory.ipa Payload
+          zip -qry ../"$ASSET" Payload
           cd ..
-          ls -lh ArtificialMemory.ipa
+          ls -lh "$ASSET"
 
       - name: Upload .ipa as run artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ArtificialMemory.ipa
-          path: ArtificialMemory.ipa
+          name: ${{ env.ASSET }}
+          path: ${{ env.ASSET }}
           if-no-files-found: error
 
       - name: Publish .ipa as GitHub Release (bare file, no zip)
@@ -95,10 +105,10 @@ jobs:
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release delete "$TAG" --yes
           fi
-          gh release create "$TAG" ArtificialMemory.ipa \
+          gh release create "$TAG" "$ASSET" \
             --target "$GITHUB_SHA" \
-            --title "iOS build ($TAG)" \
-            --notes "Unsigned .ipa from CI. Re-sign with Sideloadly / AltStore / an ad-hoc profile to install. The app reaches your self-hosted server over plain HTTP on your LAN/Tailscale — set the endpoint in Settings."
+            --title "ArtificialMemory ${APP_VERSION} (${APP_BUILD})" \
+            --notes "Build ${APP_BUILD} of ${APP_VERSION}. Version visible in LiveContainer = CFBundleShortVersionString ${APP_VERSION} (${APP_BUILD}). Unsigned .ipa — re-sign with Sideloadly / AltStore / an ad-hoc profile to install. The app reaches your self-hosted server over plain HTTP on your LAN/Tailscale — set the endpoint in Settings."
           gh release view "$TAG"
 
       - name: Mirror .ipa to iCloud Drive
@@ -109,5 +119,5 @@ jobs:
           # a sync hiccup must never redden a build.
           DEST="$HOME/Library/Mobile Documents/com~apple~CloudDocs/IPAs"
           mkdir -p "$DEST"
-          cp -f ArtificialMemory.ipa "$DEST/ArtificialMemory.ipa"
+          cp -f "$ASSET" "$DEST/$ASSET"
           ls -lh "$DEST"
